@@ -24,6 +24,7 @@ from starlette.responses import (
     HTMLResponse,
     JSONResponse,
     PlainTextResponse,
+    RedirectResponse,
     StreamingResponse,
 )
 from starlette.routing import Mount, Route, WebSocketRoute

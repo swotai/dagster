@@ -1,11 +1,11 @@
 from os import path
 
+import uvicorn
 from click.testing import CliRunner
 from dagit.debug import dagit_debug_command
 from dagster import execute_pipeline, lambda_solid, pipeline
 from dagster.cli.debug import export_command
 from dagster.core.test_utils import instance_for_test
-from gevent import pywsgi
 
 
 @lambda_solid
@@ -30,9 +30,8 @@ def test_roundtrip(monkeypatch):
         assert file_path in export_result.output
 
         # make dagit stop after launch
-        monkeypatch.setattr(pywsgi.WSGIServer, "serve_forever", lambda _: None)
+        monkeypatch.setattr(uvicorn, "run", lambda *args, **kwargs: None)
 
         debug_result = runner.invoke(dagit_debug_command, [file_path])
         assert file_path in debug_result.output
         assert "run_id: {}".format(run_result.run_id) in debug_result.output
-        assert "Serving on" in debug_result.output
