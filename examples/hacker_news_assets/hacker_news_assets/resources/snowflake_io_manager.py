@@ -1,7 +1,8 @@
 import os
 import textwrap
 from contextlib import contextmanager
-from typing import Mapping, Optional, Sequence, Union
+from datetime import datetime
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from dagster import EventMetadataEntry, IOManager, InputContext, OutputContext, io_manager
 from pandas import DataFrame as PandasDataFrame
@@ -11,6 +12,8 @@ from pyspark.sql.types import StructField, StructType
 from snowflake.connector.pandas_tools import pd_writer
 from snowflake.sqlalchemy import URL  # pylint: disable=no-name-in-module,import-error
 from sqlalchemy import create_engine
+
+SNOWFLAKE_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 def spark_field_to_snowflake_type(spark_field: StructField):
@@ -51,7 +54,7 @@ def connect_snowflake(config, schema="public"):
             conn.close()
 
 
-@io_manager(config_schema={"database": str}, required_resource_keys={"partition_bounds"})
+@io_manager(config_schema={"database": str})
 def snowflake_io_manager(init_context):
     return SnowflakeIOManager(
         config=dict(database=init_context.resource_config["database"], **SHARED_SNOWFLAKE_CONF)
@@ -70,11 +73,7 @@ class SnowflakeIOManager(IOManager):
     def handle_output(self, context: OutputContext, obj: Union[PandasDataFrame, SparkDataFrame]):
         schema, table = "hackernews", context.asset_key.path[-1]
 
-        partition_bounds = (
-            context.resources.partition_bounds
-            if context.metadata.get("partitioned") is True
-            else None
-        )
+        partition_bounds = context.partition_window if context.has_partitions else None
         with connect_snowflake(config=self._config, schema=schema) as con:
             con.execute(self._get_cleanup_statement(table, schema, partition_bounds))
 
@@ -126,7 +125,7 @@ class SnowflakeIOManager(IOManager):
         df.write.format("net.snowflake.spark.snowflake").options(**options).mode("append").save()
 
     def _get_cleanup_statement(
-        self, table: str, schema: str, partition_bounds: Mapping[str, str]
+        self, table: str, schema: str, partition_bounds: Tuple[datetime, datetime]
     ) -> str:
         """
         Returns a SQL statement that deletes data in the given table to make way for the output data
@@ -148,9 +147,7 @@ class SnowflakeIOManager(IOManager):
                     table,
                     schema,
                     metadata.get("columns"),
-                    context.resources.partition_bounds
-                    if metadata.get("partitioned") is True
-                    else None,
+                    context.partition_window if context.has_partitions else None,
                 ),
                 con=con,
             )
@@ -173,8 +170,9 @@ class SnowflakeIOManager(IOManager):
         else:
             return f"""SELECT {col_str} FROM {schema}.{table}"""
 
-    def _partition_where_clause(self, partition_bounds: Mapping[str, str]) -> str:
-        return f"""WHERE TO_TIMESTAMP(time::INT) BETWEEN '{partition_bounds["start"]}' AND '{partition_bounds["end"]}'"""
+    def _partition_where_clause(self, partition_bounds: Tuple[datetime, datetime]) -> str:
+        start_dt, end_dt = partition_bounds
+        return f"""WHERE TO_TIMESTAMP(time::INT) BETWEEN '{start_dt.strftime(SNOWFLAKE_DATETIME_FORMAT)}' AND '{end_dt.strftime(SNOWFLAKE_DATETIME_FORMAT)}'"""
 
 
 def pandas_columns_to_markdown(dataframe: PandasDataFrame) -> str:
