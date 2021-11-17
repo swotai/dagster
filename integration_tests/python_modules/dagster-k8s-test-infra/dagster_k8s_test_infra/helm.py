@@ -522,6 +522,9 @@ def helm_chart(namespace, docker_image, celery_backend, should_cleanup=True):
     check.str_param(docker_image, "docker_image")
     check.bool_param(should_cleanup, "should_cleanup")
 
+    repository, tag = docker_image.split(":")
+    pull_policy = image_pull_policy()
+
     if celery_backend == "rabbitmq":
         additional_config = {}
     elif celery_backend == "redis":
@@ -534,6 +537,13 @@ def helm_chart(namespace, docker_image, celery_backend, should_cleanup=True):
                 "internal": True,
                 "host": "dagster-redis-master",
                 "cluster": {"enabled": False},
+            },
+            "dagsterDaemon": {
+                "image": {"repository": repository, "tag": tag, "pullPolicy": pull_policy},
+                "runMonitoring": {
+                    "enabled": True,
+                    "pollIntervalSeconds": 5,
+                },
             },
         }
     else:
