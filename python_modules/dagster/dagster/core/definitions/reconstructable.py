@@ -3,6 +3,7 @@ import os
 import sys
 from collections import namedtuple
 from functools import lru_cache
+from typing import overload
 
 from dagster import check, seven
 from dagster.core.code_pointer import (
@@ -536,7 +537,6 @@ def pipeline_def_from_pointer(pointer):
         "CodePointer ({str}) must resolve to a JobDefinition (or PipelineDefinition for legacy code). "
         "Received a {type}".format(str=pointer.describe(), type=type(target))
     )
-
 
 def repository_def_from_target_def(target):
     from .pipeline_definition import PipelineDefinition

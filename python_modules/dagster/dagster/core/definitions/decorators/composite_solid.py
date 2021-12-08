@@ -152,3 +152,22 @@ def composite_solid(
         config_schema=config_schema,
         config_fn=config_fn,
     )
+
+
+from typing import overload
+
+@overload
+def f(x: str, y) -> str:
+    ...
+
+@overload
+def f(x: int, y) -> int:
+    ...
+
+def f(x, y: str):
+    if isinstance(x, str):
+        return x + y
+    elif isinstance(x, int):
+        return x + len(y)
+
+f(1, 'a')

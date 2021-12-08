@@ -515,7 +515,6 @@ def test_opt_callable_param():
     with pytest.raises(ParameterCheckError):
         check.opt_callable_param(2, "lamb")
 
-
 def test_param_invariant():
     check.param_invariant(True, "some_param")
     num_to_check = 1
@@ -701,6 +700,7 @@ def test_inst():
     obj = Foo()
 
     assert check.inst(obj, Foo) == obj
+    assert check.inst(obj, (Foo, Bar)) == obj
 
     with pytest.raises(CheckError, match="not a Bar"):
         check.inst(Foo(), Bar)

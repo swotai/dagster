@@ -25,7 +25,6 @@ from dagster.utils.hosted_user_process import recon_repository_from_origin
 
 WORKSPACE_TARGET_WARNING = "Can only use ONE of --workspace/-w, --python-file/-f, --module-name/-m, --grpc-port, --grpc-socket."
 
-
 def _cli_load_invariant(condition, msg=None):
     msg = (
         msg
@@ -472,6 +471,7 @@ def get_pipeline_or_job_python_origin_from_kwargs(kwargs, using_job_op_graph_api
 
     return PipelinePythonOrigin(pipeline_name, repository_origin=repository_origin)
 
+from dagster.check import failed
 
 def _get_code_pointer_dict_from_kwargs(kwargs):
     python_file = kwargs.get("python_file")
@@ -512,7 +512,9 @@ def _get_code_pointer_dict_from_kwargs(kwargs):
             )
         }
     else:
-        check.failed("Must specify a Python file or module name")
+        failed("Must specify a Python file or module name")
+        # check.failed("Must specify a Python file or module name")
+        check.failed2("Must specify a Python file or module name")
 
 
 def get_working_directory_from_kwargs(kwargs):

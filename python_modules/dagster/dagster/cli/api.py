@@ -87,10 +87,10 @@ def _execute_run_command_body(recon_pipeline, pipeline_run_id, instance, write_s
             write_stream_fn(event)
     finally:
         if instance.should_start_background_run_thread:
-            cancellation_thread_shutdown_event.set()
-            if cancellation_thread.is_alive():
-                cancellation_thread.join(timeout=15)
-                if cancellation_thread.is_alive():
+            cancellation_thread_shutdown_event.set()  # type: ignore
+            if cancellation_thread.is_alive():  # type: ignore
+                cancellation_thread.join(timeout=15)  # type: ignore
+                if cancellation_thread.is_alive():  # type: ignore
                     instance.report_engine_event(
                         "Cancellation thread did not shutdown gracefully",
                         pipeline_run,
@@ -156,10 +156,10 @@ def _resume_run_command_body(recon_pipeline, pipeline_run_id, instance, write_st
             write_stream_fn(event)
     finally:
         if instance.should_start_background_run_thread:
-            cancellation_thread_shutdown_event.set()
-            if cancellation_thread.is_alive():
-                cancellation_thread.join(timeout=15)
-                if cancellation_thread.is_alive():
+            cancellation_thread_shutdown_event.set()  # type: ignore
+            if cancellation_thread.is_alive():  # type: ignore
+                cancellation_thread.join(timeout=15)  # type: ignore
+                if cancellation_thread.is_alive():  # type: ignore
                     instance.report_engine_event(
                         "Cancellation thread did not shutdown gracefully",
                         pipeline_run,
@@ -247,7 +247,7 @@ def execute_step_command(input_json):
             else DagsterInstance.get()
         ) as instance:
             pipeline_run = instance.get_run_by_id(args.pipeline_run_id)
-            check.inst(
+            pipeline_run = check.inst(
                 pipeline_run,
                 PipelineRun,
                 "Pipeline run with id '{}' not found for step execution".format(
