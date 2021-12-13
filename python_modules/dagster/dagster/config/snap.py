@@ -220,6 +220,7 @@ def snap_from_field(name, field):
     )
 
 
+# type-ignores here are temporary until config type system overhauled
 def snap_from_config_type(config_type: ConfigType) -> ConfigTypeSnap:
     check.inst_param(config_type, "config_type", ConfigType)
     return ConfigTypeSnap(
@@ -229,19 +230,19 @@ def snap_from_config_type(config_type: ConfigType) -> ConfigTypeSnap:
         description=config_type.description,
         type_param_keys=[ct.key for ct in config_type.type_params] if config_type.type_params
         # jam scalar union types into type_param_keys
-        else [config_type.scalar_type.key, config_type.non_scalar_type.key]
+        else [config_type.scalar_type.key, config_type.non_scalar_type.key]  # type: ignore
         if config_type.kind == ConfigTypeKind.SCALAR_UNION
         else None,
         enum_values=[
-            ConfigEnumValueSnap(ev.config_value, ev.description) for ev in config_type.enum_values
+            ConfigEnumValueSnap(ev.config_value, ev.description) for ev in config_type.enum_values  # type: ignore
         ]
         if config_type.kind == ConfigTypeKind.ENUM
         else None,
-        fields=[snap_from_field(name, field) for name, field in config_type.fields.items()]
+        fields=[snap_from_field(name, field) for name, field in config_type.fields.items()]  # type: ignore
         if ConfigTypeKind.has_fields(config_type.kind)
         else None,
-        scalar_kind=config_type.scalar_kind if config_type.kind == ConfigTypeKind.SCALAR else None,
-        field_aliases=config_type.field_aliases
+        scalar_kind=config_type.scalar_kind if config_type.kind == ConfigTypeKind.SCALAR else None,  # type: ignore
+        field_aliases=config_type.field_aliases  # type: ignore
         if config_type.kind == ConfigTypeKind.STRICT_SHAPE
         else None,
     )
@@ -258,7 +259,7 @@ def minimal_config_for_type_snap(
         default_dict = {}
         if ConfigTypeKind.is_selector(config_type_snap.kind):
             return "<selector>"
-        for field in config_type_snap.fields:
+        for field in config_type_snap.fields:  # type: ignore
             if not field.is_required:
                 continue
 
@@ -271,7 +272,7 @@ def minimal_config_for_type_snap(
     elif config_type_snap.kind == ConfigTypeKind.SCALAR:
         defaults = {"String": "...", "Int": 0, "Float": 0.0, "Bool": True}
 
-        return defaults.get(config_type_snap.given_name, "<unknown>")
+        return defaults.get(config_type_snap.given_name, "<unknown>")  # type: ignore
     elif config_type_snap.kind == ConfigTypeKind.ARRAY:
         return []
     elif config_type_snap.kind == ConfigTypeKind.ENUM:
@@ -282,7 +283,7 @@ def minimal_config_for_type_snap(
     elif config_type_snap.kind == ConfigTypeKind.SCALAR_UNION:
         return minimal_config_for_type_snap(
             config_schema_snap,
-            config_schema_snap.get_config_snap(config_type_snap.type_param_keys[0]),
+            config_schema_snap.get_config_snap(config_type_snap.type_param_keys[0]),  # type: ignore
         )
     else:
         return "<unknown>"

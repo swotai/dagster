@@ -1,9 +1,9 @@
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from dagster import check
 from dagster.utils import ensure_single_item, frozendict
 
-from .config_type import ConfigScalarKind, ConfigTypeKind
+from .config_type import ConfigScalarKind, ConfigType, ConfigTypeKind
 from .errors import (
     create_array_error,
     create_dict_type_mismatch_error,
@@ -53,6 +53,7 @@ def is_config_scalar_valid(config_type_snap, config_value):
 def validate_config(config_schema: object, config_value: object):
 
     config_type = resolve_to_config_type(config_schema)
+    config_type = check.inst(cast(ConfigType, config_type), ConfigType)
 
     config_schema_snapshot = config_schema_snapshot_from_config_type(config_type)
 
@@ -359,6 +360,7 @@ def validate_enum_config(context, config_value):
 
 def process_config(config_type: object, config_dict: Dict) -> EvaluateValueResult:
     config_type = resolve_to_config_type(config_type)
+    config_type = check.inst(cast(ConfigType, config_type), ConfigType)
     validate_evr = validate_config(config_type, config_dict)
     if not validate_evr.success:
         return validate_evr
