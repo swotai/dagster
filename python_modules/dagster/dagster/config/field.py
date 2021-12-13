@@ -1,4 +1,4 @@
-from typing import Any, Literal, Union, overload
+from typing import Any, Union, overload
 
 from dagster import check
 from dagster.builtins import BuiltinEnum
@@ -40,7 +40,7 @@ def resolve_to_config_type(dagster_type: ConfigType) -> ConfigType:
 
 
 @overload
-def resolve_to_config_type(dagster_type: object) -> Union[ConfigType, Literal[False]]:
+def resolve_to_config_type(dagster_type: object) -> Union[ConfigType, bool]:
     pass
 
 

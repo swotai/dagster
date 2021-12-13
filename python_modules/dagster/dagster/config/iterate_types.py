@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Union, cast
+from typing import Dict, Union, cast
 from dagster import check
 from dagster.config.field import Field
 
@@ -27,7 +27,7 @@ def iterate_config_types(config_type: ConfigType):
 
 
 def config_schema_snapshot_from_config_type(
-    config_type: Union[ConfigType, Literal[False]]
+    config_type: Union[ConfigType, bool]
 ) -> ConfigSchemaSnapshot:
     config_type = check.inst_param(cast(ConfigType, config_type), "config_type", ConfigType)
     return ConfigSchemaSnapshot(

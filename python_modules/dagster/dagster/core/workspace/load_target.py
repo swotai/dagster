@@ -1,12 +1,10 @@
 from abc import ABC, abstractmethod
-from collections import namedtuple
-from typing import List, NamedTuple, Optional, Union
+from typing import List, NamedTuple, Optional
 
 from dagster.core.host_representation.origin import (
     GrpcServerRepositoryLocationOrigin,
     RepositoryLocationOrigin,
 )
-from dagster.core.types.loadable_target_origin import LoadableTargetOrigin
 
 from .load import (
     location_origin_from_module_name,
@@ -14,9 +12,6 @@ from .load import (
     location_origin_from_python_file,
     location_origins_from_yaml_paths,
 )
-
-from typing import overload, Literal, NoReturn
-
 
 class WorkspaceLoadTarget(ABC):
     @abstractmethod
