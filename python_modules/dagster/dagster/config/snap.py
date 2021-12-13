@@ -66,11 +66,11 @@ class ConfigTypeSnap(
             ("key", str),
             ("given_name", Optional[str]),
             ("description", Optional[str]),
-            ("type_param_keys", Optional[List[str]]),
-            ("enum_values", Optional[List["ConfigEnumValueSnap"]]),
-            ("fields", Optional[List["ConfigFieldSnap"]]),
-            ("scalar_kind", Optional[ConfigScalarKind]),
-            ("field_aliases", Optional[Dict[str, str]]),
+            ("type_param_keys", Optional[List[str]]),  # only valid for closed generics
+            ("enum_values", Optional[List["ConfigEnumValueSnap"]]),  # only valid for enums
+            ("fields", Optional[List["ConfigFieldSnap"]]),  # only valid for dicts and selectors
+            ("scalar_kind", Optional[ConfigScalarKind]),  # only valid for scalars
+            ("field_aliases", Optional[Dict[str, str]]),  # only valid for strict shapes
         ],
     )
 ):
