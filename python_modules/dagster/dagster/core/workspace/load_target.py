@@ -13,6 +13,7 @@ from .load import (
     location_origins_from_yaml_paths,
 )
 
+
 class WorkspaceLoadTarget(ABC):
     @abstractmethod
     def create_origins(self) -> List[RepositoryLocationOrigin]:

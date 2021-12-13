@@ -1,10 +1,10 @@
 import sys
 import threading
-from typing import NamedTuple, Optional, Union
 import uuid
 from abc import abstractmethod, abstractproperty
 from collections import namedtuple
 from contextlib import AbstractContextManager
+from typing import NamedTuple, Optional, Union
 
 import pendulum
 from dagster import check
