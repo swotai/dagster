@@ -1,6 +1,7 @@
 import os
 import sys
 from contextlib import contextmanager
+from typing import TYPE_CHECKING, Dict, Generator, Optional
 
 import click
 from click import UsageError
@@ -19,14 +20,18 @@ from dagster.core.workspace.load_target import (
     PackageTarget,
     PythonFileTarget,
     WorkspaceFileTarget,
+    WorkspaceLoadTarget,
 )
 from dagster.grpc.utils import get_loadable_targets
 from dagster.utils.hosted_user_process import recon_repository_from_origin
 
+if TYPE_CHECKING:
+    from dagster.core.workspace.context import WorkspaceProcessContext
+
 WORKSPACE_TARGET_WARNING = "Can only use ONE of --workspace/-w, --python-file/-f, --module-name/-m, --grpc-port, --grpc-socket."
 
 
-def _cli_load_invariant(condition, msg=None):
+def _cli_load_invariant(condition, msg=None) -> None:
     msg = (
         msg
         or "Invalid set of CLI arguments for loading repository/pipeline. See --help for details."
@@ -63,7 +68,7 @@ WORKSPACE_CLI_ARGS = (
 )
 
 
-def created_workspace_load_target(kwargs):
+def created_workspace_load_target(kwargs: Dict[str, object]) -> WorkspaceLoadTarget:
     check.dict_param(kwargs, "kwargs")
     if are_all_keys_empty(kwargs, WORKSPACE_CLI_ARGS):
         if kwargs.get("empty_workspace"):
@@ -97,8 +102,8 @@ def created_workspace_load_target(kwargs):
         )
         working_directory = get_working_directory_from_kwargs(kwargs)
         return PythonFileTarget(
-            python_file=kwargs.get("python_file"),
-            attribute=kwargs.get("attribute"),
+            python_file=check.str_elem(kwargs, "python_file"),
+            attribute=check.opt_str_elem(kwargs, "attribute"),
             working_directory=working_directory,
             location_name=None,
         )
@@ -113,8 +118,8 @@ def created_workspace_load_target(kwargs):
             "grpc_socket",
         )
         return ModuleTarget(
-            module_name=kwargs.get("module_name"),
-            attribute=kwargs.get("attribute"),
+            module_name=check.str_elem(kwargs, "module_name"),
+            attribute=check.opt_str_elem(kwargs, "attribute"),
             location_name=None,
         )
     if kwargs.get("package_name"):
@@ -160,11 +165,13 @@ def created_workspace_load_target(kwargs):
         )
     else:
         _cli_load_invariant(False)
+        # necessary for pyright, does not understand _cli_load_invariant(False) never returns
+        assert False
 
 
 def get_workspace_process_context_from_kwargs(
-    instance: DagsterInstance, version: str, read_only: bool, kwargs
-):
+    instance: DagsterInstance, version: str, read_only: bool, kwargs: Dict[str, object]
+) -> "WorkspaceProcessContext":
     from dagster.core.workspace import WorkspaceProcessContext
 
     return WorkspaceProcessContext(
@@ -173,7 +180,9 @@ def get_workspace_process_context_from_kwargs(
 
 
 @contextmanager
-def get_workspace_from_kwargs(instance: DagsterInstance, version: str, kwargs):
+def get_workspace_from_kwargs(
+    instance: DagsterInstance, version: str, kwargs: Dict[str, object]
+) -> Generator[WorkspaceRequestContext, None, None]:
     with get_workspace_process_context_from_kwargs(
         instance, version, read_only=False, kwargs=kwargs
     ) as workspace_process_context:
@@ -515,10 +524,10 @@ def _get_code_pointer_dict_from_kwargs(kwargs):
         check.failed("Must specify a Python file or module name")
 
 
-def get_working_directory_from_kwargs(kwargs):
+def get_working_directory_from_kwargs(kwargs: Dict[str, object]) -> Optional[str]:
     if kwargs.get("empty_working_directory"):
         return None
-    return kwargs.get("working_directory") if kwargs.get("working_directory") else os.getcwd()
+    return check.opt_str_elem(kwargs, "working_directory") or os.getcwd()
 
 
 def get_repository_python_origin_from_kwargs(kwargs):

@@ -1,4 +1,4 @@
-import typing
+from typing import Any, Literal, Union, overload
 
 from dagster import check
 from dagster.builtins import BuiltinEnum
@@ -32,6 +32,16 @@ VALID_CONFIG_DESC = """
 4. A bare python list of length one which itself is config type.
    Becomes Array with list element as an argument.
 """
+
+
+@overload
+def resolve_to_config_type(dagster_type: ConfigType) -> ConfigType:
+    pass
+
+
+@overload
+def resolve_to_config_type(dagster_type: object) -> Union[ConfigType, Literal[False]]:
+    pass
 
 
 def resolve_to_config_type(dagster_type):
@@ -329,7 +339,7 @@ class Field:
         return self._default_value != FIELD_NO_DEFAULT_PROVIDED
 
     @property
-    def default_value(self) -> typing.Any:
+    def default_value(self) -> Any:
         check.invariant(self.default_provided, "Asking for default value when none was provided")
         return self._default_value
 

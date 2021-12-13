@@ -2,11 +2,14 @@ import os
 import sys
 from collections import OrderedDict
 
+from typing import TYPE_CHECKING, Dict, List, Optional
+
 from dagster import check
 from dagster.core.code_pointer import rebase_file
 from dagster.core.host_representation.origin import (
     GrpcServerRepositoryLocationOrigin,
     ManagedGrpcPythonEnvRepositoryLocationOrigin,
+    RepositoryLocationOrigin,
 )
 from dagster.core.instance import DagsterInstance
 from dagster.core.types.loadable_target_origin import LoadableTargetOrigin
@@ -14,17 +17,20 @@ from dagster.utils import load_yaml_from_path, merge_dicts
 
 from .config_schema import ensure_workspace_config
 
+if TYPE_CHECKING:
+    from .context import WorkspaceProcessContext
+
 
 def load_workspace_process_context_from_yaml_paths(
-    instance: DagsterInstance, yaml_paths, version=""
-):
+    instance: DagsterInstance, yaml_paths: List[str], version: str = ""
+) -> "WorkspaceProcessContext":
     from .load_target import WorkspaceFileTarget
     from .context import WorkspaceProcessContext
 
     return WorkspaceProcessContext(instance, WorkspaceFileTarget(paths=yaml_paths), version=version)
 
 
-def location_origins_from_yaml_paths(yaml_paths):
+def location_origins_from_yaml_paths(yaml_paths: List[str]) -> List[RepositoryLocationOrigin]:
     check.list_param(yaml_paths, "yaml_paths", str)
 
     workspace_configs = [load_yaml_from_path(yaml_path) for yaml_path in yaml_paths]
@@ -46,7 +52,7 @@ def location_origins_from_yaml_paths(yaml_paths):
     return list(origins_by_name.values())
 
 
-def location_origins_from_config(workspace_config, yaml_path):
+def location_origins_from_config(workspace_config: object, yaml_path: str):
     workspace_config = ensure_workspace_config(workspace_config, yaml_path)
 
     location_origins = OrderedDict()
@@ -199,10 +205,10 @@ def _get_python_file_config_data(python_file_config, yaml_path, default_executab
 
 
 def location_origin_from_python_file(
-    python_file,
-    attribute,
-    working_directory,
-    location_name=None,
+    python_file: str,
+    attribute: Optional[str],
+    working_directory: Optional[str],
+    location_name: Optional[str] = None,
     executable_path=sys.executable,
 ):
     check.str_param(python_file, "python_file")
@@ -257,7 +263,7 @@ def _get_executable_path(executable_path, default):
     return os.path.expanduser(executable_path) if executable_path else default
 
 
-def _location_origin_from_location_config(location_config, yaml_path):
+def _location_origin_from_location_config(location_config: Dict, yaml_path: str):
     check.dict_param(location_config, "location_config")
     check.str_param(yaml_path, "yaml_path")
 

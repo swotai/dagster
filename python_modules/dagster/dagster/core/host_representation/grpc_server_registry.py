@@ -1,5 +1,6 @@
 import sys
 import threading
+from typing import NamedTuple, Optional, Union
 import uuid
 from abc import abstractmethod, abstractproperty
 from collections import namedtuple
@@ -18,7 +19,17 @@ from dagster.grpc.server import GrpcServerProcess
 from dagster.utils.error import SerializableErrorInfo, serializable_error_info_from_exc_info
 
 
-class GrpcServerEndpoint(namedtuple("_GrpcServerEndpoint", "server_id host port socket")):
+class GrpcServerEndpoint(
+    NamedTuple(
+        "_GrpcServerEndpoint",
+        [
+            ("server_id", str),
+            ("host", str),
+            ("port", Optional[int]),
+            ("socket", Optional[str]),
+        ],
+    )
+):
     def __new__(cls, server_id, host, port, socket):
         return super(GrpcServerEndpoint, cls).__new__(
             cls,
@@ -28,7 +39,7 @@ class GrpcServerEndpoint(namedtuple("_GrpcServerEndpoint", "server_id host port 
             check.opt_str_param(socket, "socket"),
         )
 
-    def create_client(self):
+    def create_client(self) -> DagsterGrpcClient:
         return DagsterGrpcClient(port=self.port, socket=self.socket, host=self.host)
 
 
@@ -36,26 +47,32 @@ class GrpcServerEndpoint(namedtuple("_GrpcServerEndpoint", "server_id host port 
 # a single GrpcServerProcess is created for each origin
 class GrpcServerRegistry(AbstractContextManager):
     @abstractmethod
-    def supports_origin(self, repository_location_origin):
+    def supports_origin(self, repository_location_origin: RepositoryLocationOrigin) -> bool:
         pass
 
     @abstractmethod
-    def get_grpc_endpoint(self, repository_location_origin):
+    def get_grpc_endpoint(self, repository_location_origin: RepositoryLocationOrigin) -> bool:
         pass
 
     @abstractmethod
-    def reload_grpc_endpoint(self, repository_location_origin):
+    def reload_grpc_endpoint(self, repository_location_origin: RepositoryLocationOrigin) -> bool:
         pass
 
-    @abstractproperty
-    def supports_reload(self):
+    @property
+    @abstractmethod
+    def supports_reload(self) -> bool:
         pass
 
 
 class ProcessRegistryEntry(
-    namedtuple(
+    NamedTuple(
         "_ProcessRegistryEntry",
-        "process_or_error loadable_target_origin creation_timestamp server_id",
+        [
+            ("process_or_error", Union[GrpcServerProcess, SerializableErrorInfo]),
+            ("loadable_target_origin", LoadableTargetOrigin),
+            ("creation_timestamp", float),
+            ("server_id", Optional[str]),
+        ],
     )
 ):
     def __new__(cls, process_or_error, loadable_target_origin, creation_timestamp, server_id):

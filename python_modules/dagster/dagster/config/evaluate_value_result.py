@@ -1,11 +1,16 @@
-from collections import namedtuple
+from typing import List, NamedTuple, Optional
 
 from dagster import check
 
 from .errors import EvaluationError
 
 
-class EvaluateValueResult(namedtuple("_EvaluateValueResult", "success value errors")):
+class EvaluateValueResult(
+    NamedTuple(
+        "_EvaluateValueResult",
+        [("success", Optional[bool]), ("value", object), ("errors", List[EvaluationError])],
+    )
+):
     def __new__(cls, success, value, errors):
         return super(EvaluateValueResult, cls).__new__(
             cls,

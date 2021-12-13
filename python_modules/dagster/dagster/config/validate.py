@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from dagster import check
 from dagster.utils import ensure_single_item, frozendict
 
@@ -48,7 +49,7 @@ def is_config_scalar_valid(config_type_snap, config_value):
         check.failed("Not a supported scalar {}".format(config_type_snap))
 
 
-def validate_config(config_schema, config_value):
+def validate_config(config_schema: object, config_value: object):
 
     config_type = resolve_to_config_type(config_schema)
 
@@ -355,7 +356,7 @@ def validate_enum_config(context, config_value):
     return EvaluateValueResult.for_value(config_value)
 
 
-def process_config(config_type, config_dict) -> EvaluateValueResult:
+def process_config(config_type: object, config_dict: Dict) -> EvaluateValueResult:
     config_type = resolve_to_config_type(config_type)
     validate_evr = validate_config(config_type, config_dict)
     if not validate_evr.success:

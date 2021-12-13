@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 from collections import namedtuple
+from typing import List, NamedTuple, Optional, Union
 
-from dagster.core.host_representation.origin import GrpcServerRepositoryLocationOrigin
+from dagster.core.host_representation.origin import (
+    GrpcServerRepositoryLocationOrigin,
+    RepositoryLocationOrigin,
+)
+from dagster.core.types.loadable_target_origin import LoadableTargetOrigin
 
 from .load import (
     location_origin_from_module_name,
@@ -10,20 +15,32 @@ from .load import (
     location_origins_from_yaml_paths,
 )
 
+from typing import overload, Literal, NoReturn
+
 
 class WorkspaceLoadTarget(ABC):
     @abstractmethod
-    def create_origins(self):
+    def create_origins(self) -> List[RepositoryLocationOrigin]:
         """Reloads the RepositoryLocationOrigins for this workspace."""
 
 
-class WorkspaceFileTarget(namedtuple("WorkspaceFileTarget", "paths"), WorkspaceLoadTarget):
+class WorkspaceFileTarget(
+    NamedTuple("WorkspaceFileTarget", [("paths", List[str])]), WorkspaceLoadTarget
+):
     def create_origins(self):
         return location_origins_from_yaml_paths(self.paths)
 
 
 class PythonFileTarget(
-    namedtuple("PythonFileTarget", "python_file attribute working_directory location_name"),
+    NamedTuple(
+        "PythonFileTarget",
+        [
+            ("python_file", str),
+            ("attribute", Optional[str]),
+            ("working_directory", Optional[str]),
+            ("location_name", Optional[str]),
+        ],
+    ),
     WorkspaceLoadTarget,
 ):
     def create_origins(self):
@@ -38,7 +55,15 @@ class PythonFileTarget(
 
 
 class ModuleTarget(
-    namedtuple("ModuleTarget", "module_name attribute location_name"), WorkspaceLoadTarget
+    NamedTuple(
+        "ModuleTarget",
+        [
+            ("module_name", str),
+            ("attribute", Optional[str]),
+            ("location_name", Optional[str]),
+        ],
+    ),
+    WorkspaceLoadTarget,
 ):
     def create_origins(self):
         return [
@@ -51,7 +76,15 @@ class ModuleTarget(
 
 
 class PackageTarget(
-    namedtuple("PackageTarget", "package_name attribute location_name"), WorkspaceLoadTarget
+    NamedTuple(
+        "ModuleTarget",
+        [
+            ("package_name", str),
+            ("attribute", Optional[str]),
+            ("location_name", Optional[str]),
+        ],
+    ),
+    WorkspaceLoadTarget,
 ):
     def create_origins(self):
         return [
@@ -64,7 +97,16 @@ class PackageTarget(
 
 
 class GrpcServerTarget(
-    namedtuple("GrpcServerTarget", "host port socket location_name"), WorkspaceLoadTarget
+    NamedTuple(
+        "ModuleTarget",
+        [
+            ("host", str),
+            ("port", Optional[int]),
+            ("socket", Optional[str]),
+            ("location_name", str),
+        ],
+    ),
+    WorkspaceLoadTarget,
 ):
     def create_origins(self):
         return [
@@ -78,6 +120,6 @@ class GrpcServerTarget(
 
 
 #  Utility target for graphql commands that do not require a workspace, e.g. downloading schema
-class EmptyWorkspaceTarget(namedtuple("EmptyWorkspaceTarget", ""), WorkspaceLoadTarget):
+class EmptyWorkspaceTarget(NamedTuple("EmptyWorkspaceTarget", []), WorkspaceLoadTarget):
     def create_origins(self):
         return []

@@ -1,22 +1,24 @@
 import os
+from typing import Any, Dict
 
 from dagster import check
 from dagster.config import Field, ScalarUnion, Selector
+from dagster.config.evaluate_value_result import EvaluateValueResult
 from dagster.config.source import IntSource, StringSource
 from dagster.config.validate import process_config
 from dagster.core.errors import DagsterInvalidConfigError
 from dagster.utils import merge_dicts
 
 
-def process_workspace_config(workspace_config):
-    check.dict_param(workspace_config, "workspace_config")
+def process_workspace_config(workspace_config: Dict) -> EvaluateValueResult:
+    workspace_config = check.dict_param(workspace_config, "workspace_config")
 
     return process_config(WORKSPACE_CONFIG_SCHEMA, workspace_config)
 
 
-def ensure_workspace_config(workspace_config, yaml_path):
+def ensure_workspace_config(workspace_config: object, yaml_path: str):
     check.str_param(yaml_path, "yaml_path")
-    check.dict_param(workspace_config, "workspace_config")
+    workspace_config = check.dict_param(workspace_config, "workspace_config")
 
     validation_result = process_workspace_config(workspace_config)
     if not validation_result.success:
