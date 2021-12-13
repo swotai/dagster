@@ -1,6 +1,7 @@
 import gzip
 import io
 import os
+from typing import TYPE_CHECKING
 import uuid
 
 import nbformat
@@ -11,7 +12,7 @@ from dagster.core.execution.compute_logs import warn_if_compute_logs_disabled
 from dagster.core.instance import is_dagit_telemetry_enabled
 from dagster.core.storage.compute_log_manager import ComputeIOType
 from dagster.core.telemetry import log_workspace_stats
-from dagster.core.workspace.context import IWorkspaceProcessContext, WorkspaceProcessContext
+from dagster.core.workspace.context import BaseWorkspaceRequestContext, IWorkspaceProcessContext, WorkspaceProcessContext
 from dagster_graphql.schema import create_schema
 from dagster_graphql.version import __version__ as dagster_graphql_version
 from flask import Blueprint, Flask, jsonify, redirect, render_template_string, request, send_file
@@ -30,13 +31,12 @@ MISSING_SCHEDULER_WARNING = (
     "not defined a scheduler on the instance"
 )
 
-
 class DagsterGraphQLView(GraphQLView):
-    def __init__(self, context, **kwargs):
+    def __init__(self, context: IWorkspaceProcessContext, **kwargs):
         super(DagsterGraphQLView, self).__init__(**kwargs)
         self.context = check.inst_param(context, "context", IWorkspaceProcessContext)
 
-    def get_context(self):
+    def get_context(self) -> BaseWorkspaceRequestContext:
         return self.context.create_request_context()
 
     format_error = staticmethod(format_error_with_stack_trace)
@@ -50,7 +50,7 @@ def dagster_graphql_subscription_view(
     def view(ws):
         # Even though this argument is named as the "request_context", we are passing it
         # a `IWorkspaceProcessContext`. This is a naming restriction from the underlying
-        # `GeventSubscriptionServer` which we reply on. If you view the implementation
+        # `GeventSubscriptionServer` which we rely on. If you view the implementation
         # for the DagsterSubscriptionServer, you will see that we create a request context
         # for every GraphQL request in the `on_start` method.
         subscription_server.handle(ws, request_context=context)
@@ -70,7 +70,7 @@ def info_view():
     )
 
 
-def notebook_view(context, request_args):
+def notebook_view(context: IWorkspaceProcessContext, request_args):
     context = check.inst_param(context, "context", IWorkspaceProcessContext)
     repo_location_name = request_args["repoLocName"]
     check.dict_param(request_args, "request_args")
@@ -92,7 +92,7 @@ def notebook_view(context, request_args):
     return "<style>" + resources["inlining"]["css"][0] + "</style>" + body, 200
 
 
-def download_log_view(context):
+def download_log_view(context: IWorkspaceProcessContext):
     context = check.inst_param(context, "context", IWorkspaceProcessContext)
 
     def view(run_id, step_key, file_type):
@@ -121,7 +121,7 @@ def download_log_view(context):
     return view
 
 
-def download_dump_view(context):
+def download_dump_view(context: IWorkspaceProcessContext):
     context = check.inst_param(context, "context", IWorkspaceProcessContext)
 
     def view(run_id):
