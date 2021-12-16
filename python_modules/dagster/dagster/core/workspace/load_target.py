@@ -99,7 +99,7 @@ class GrpcServerTarget(
             ("host", str),
             ("port", Optional[int]),
             ("socket", Optional[str]),
-            ("location_name", str),
+            ("location_name", Optional[str]),
         ],
     ),
     WorkspaceLoadTarget,

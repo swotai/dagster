@@ -28,6 +28,7 @@ from dagster.core.host_representation.grpc_server_state_subscriber import (
     LocationStateChangeEventType,
     LocationStateSubscriber,
 )
+from dagster.core.host_representation.origin import GrpcServerRepositoryLocationOrigin
 from dagster.core.instance import DagsterInstance
 from dagster.grpc.server_watcher import create_grpc_watch_thread
 from dagster.utils.error import SerializableErrorInfo, serializable_error_info_from_exc_info
@@ -499,7 +500,7 @@ class WorkspaceProcessContext(IWorkspaceProcessContext):
         return permissions[permission]
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self._version
 
     def _send_state_event_to_subscribers(self, event: LocationStateChangeEvent) -> None:
@@ -507,7 +508,7 @@ class WorkspaceProcessContext(IWorkspaceProcessContext):
         for subscriber in self._state_subscribers:
             subscriber.handle_event(event)
 
-    def _start_watch_thread(self, origin: RepositoryLocationOrigin):
+    def _start_watch_thread(self, origin: GrpcServerRepositoryLocationOrigin) -> None:
         location_name = origin.location_name
         check.invariant(location_name not in self._watch_thread_shutdown_events)
         client = origin.create_client()

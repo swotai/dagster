@@ -55,10 +55,10 @@ def _check_invocation_requirements(
         )
 
     if init_context is not None and resource_def.required_resource_keys:
-        resources_dict = cast(  # type: ignore[attr-defined]
+        resources_dict = cast(  
             "InitResourceContext",
             init_context,
-        ).resources._asdict()
+        ).resources._asdict()  # type: ignore[attr-defined]
 
         for resource_key in resource_def.required_resource_keys:
             if resource_key not in resources_dict:

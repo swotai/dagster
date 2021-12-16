@@ -1,4 +1,4 @@
-from typing import Dict, Union, cast
+from typing import Dict, Generator, cast
 
 from dagster import check
 from dagster.config.field import Field
@@ -7,7 +7,7 @@ from .config_type import ConfigType, ConfigTypeKind
 from .snap import ConfigSchemaSnapshot, snap_from_config_type
 
 
-def iterate_config_types(config_type: ConfigType):
+def iterate_config_types(config_type: ConfigType) -> Generator[ConfigType, None, None]:
     check.inst_param(config_type, "config_type", ConfigType)
 
     # type-ignore comments below are because static type checkers don't
@@ -28,9 +28,9 @@ def iterate_config_types(config_type: ConfigType):
 
 
 def config_schema_snapshot_from_config_type(
-    config_type: Union[ConfigType, bool]
+    config_type: ConfigType,
 ) -> ConfigSchemaSnapshot:
-    config_type = check.inst_param(cast(ConfigType, config_type), "config_type", ConfigType)
+    check.inst_param(config_type, "config_type", ConfigType)
     return ConfigSchemaSnapshot(
         {ct.key: snap_from_config_type(ct) for ct in iterate_config_types(config_type)}
     )

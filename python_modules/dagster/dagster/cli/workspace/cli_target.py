@@ -90,7 +90,7 @@ def created_workspace_load_target(kwargs: Dict[str, object]) -> WorkspaceLoadTar
             "grpc_port",
             "grpc_socket",
         )
-        return WorkspaceFileTarget(paths=list(kwargs["workspace"]))
+        return WorkspaceFileTarget(paths=list(check.list_elem(kwargs, 'workspace')))
     if kwargs.get("python_file"):
         _check_cli_arguments_none(
             kwargs,
@@ -132,8 +132,8 @@ def created_workspace_load_target(kwargs: Dict[str, object]) -> WorkspaceLoadTar
             "grpc_socket",
         )
         return PackageTarget(
-            package_name=kwargs.get("package_name"),
-            attribute=kwargs.get("attribute"),
+            package_name=check.str_elem(kwargs, "package_name"),
+            attribute=check.opt_str_elem(kwargs, "attribute"),
             location_name=None,
         )
     if kwargs.get("grpc_port"):
@@ -145,9 +145,9 @@ def created_workspace_load_target(kwargs: Dict[str, object]) -> WorkspaceLoadTar
             "grpc_socket",
         )
         return GrpcServerTarget(
-            port=kwargs.get("grpc_port"),
+            port=check.int_elem(kwargs, "grpc_port"),
             socket=None,
-            host=(kwargs.get("grpc_host") if kwargs.get("grpc_host") else "localhost"),
+            host=check.opt_str_elem(kwargs, "grpc_host") or "localhost",
             location_name=None,
         )
     elif kwargs.get("grpc_socket"):
@@ -159,8 +159,8 @@ def created_workspace_load_target(kwargs: Dict[str, object]) -> WorkspaceLoadTar
         )
         return GrpcServerTarget(
             port=None,
-            socket=kwargs.get("grpc_socket"),
-            host=(kwargs.get("grpc_host") if kwargs.get("grpc_host") else "localhost"),
+            socket=check.str_elem(kwargs, "grpc_host"),
+            host=check.opt_str_elem(kwargs, "grpc_host") or "localhost",
             location_name=None,
         )
     else:

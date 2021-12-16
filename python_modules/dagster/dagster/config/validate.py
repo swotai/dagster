@@ -1,4 +1,4 @@
-from typing import Any, Dict, cast
+from typing import Dict, List, Optional, TypeVar, cast
 
 from dagster import check
 from dagster.utils import ensure_single_item, frozendict
@@ -31,8 +31,10 @@ from .traversal_context import ValidationContext
 
 VALID_FLOAT_TYPES = tuple([int, float])
 
+T = TypeVar("T")
 
-def is_config_scalar_valid(config_type_snap, config_value):
+
+def is_config_scalar_valid(config_type_snap: ConfigTypeSnap, config_value: object) -> bool:
     check.inst_param(config_type_snap, "config_type_snap", ConfigTypeSnap)
     check.param_invariant(config_type_snap.kind == ConfigTypeKind.SCALAR, "config_type_snap")
     if config_type_snap.scalar_kind == ConfigScalarKind.INT:
@@ -50,7 +52,7 @@ def is_config_scalar_valid(config_type_snap, config_value):
         check.failed("Not a supported scalar {}".format(config_type_snap))
 
 
-def validate_config(config_schema: object, config_value: object):
+def validate_config(config_schema: object, config_value: T) -> EvaluateValueResult[T]:
 
     config_type = resolve_to_config_type(config_schema)
     config_type = check.inst(cast(ConfigType, config_type), ConfigType)
@@ -64,7 +66,9 @@ def validate_config(config_schema: object, config_value: object):
     )
 
 
-def validate_config_from_snap(config_schema_snapshot, config_type_key, config_value):
+def validate_config_from_snap(
+    config_schema_snapshot: ConfigSchemaSnapshot, config_type_key: str, config_value: T
+) -> EvaluateValueResult[T]:
     check.inst_param(config_schema_snapshot, "config_schema_snapshot", ConfigSchemaSnapshot)
     check.str_param(config_type_key, "config_type_key")
     return _validate_config(
@@ -77,14 +81,14 @@ def validate_config_from_snap(config_schema_snapshot, config_type_key, config_va
     )
 
 
-def _validate_config(context, config_value):
+def _validate_config(context: ValidationContext, config_value: T) -> EvaluateValueResult[T]:
     check.inst_param(context, "context", ValidationContext)
 
     kind = context.config_type_snap.kind
 
     if kind == ConfigTypeKind.NONEABLE:
         return (
-            EvaluateValueResult.for_value(None)
+            EvaluateValueResult.for_value(cast(T, config_value))
             if config_value is None
             else _validate_config(context.for_nullable_inner_type(), config_value)
         )
@@ -114,8 +118,7 @@ def _validate_config(context, config_value):
     else:
         check.failed("Unsupported ConfigTypeKind {}".format(kind))
 
-
-def _validate_scalar_union_config(context, config_value):
+def _validate_scalar_union_config(context: ValidationContext, config_value: T) -> EvaluateValueResult[T]:
     check.inst_param(context, "context", ValidationContext)
     check.param_invariant(context.config_type_snap.kind == ConfigTypeKind.SCALAR_UNION, "context")
     check.not_none_param(config_value, "config_value")
@@ -123,7 +126,7 @@ def _validate_scalar_union_config(context, config_value):
     if isinstance(config_value, dict) or isinstance(config_value, list):
         return _validate_config(
             context.for_new_config_type_key(context.config_type_snap.non_scalar_type_key),
-            config_value,
+            cast(T, config_value)
         )
     else:
         return _validate_config(
@@ -132,13 +135,14 @@ def _validate_scalar_union_config(context, config_value):
         )
 
 
-def _validate_empty_selector_config(context):
-    if len(context.config_type_snap.fields) > 1:
+def _validate_empty_selector_config(context: ValidationContext) -> EvaluateValueResult[Dict]:
+    fields = check.not_none(context.config_type_snap.fields)
+    if len(fields) > 1:
         return EvaluateValueResult.for_error(
             create_selector_multiple_fields_no_field_selected_error(context)
         )
 
-    defined_field_snap = context.config_type_snap.fields[0]
+    defined_field_snap = fields[0]
 
     if defined_field_snap.is_required:
         return EvaluateValueResult.for_error(create_selector_unspecified_value_error(context))
@@ -146,7 +150,7 @@ def _validate_empty_selector_config(context):
     return EvaluateValueResult.for_value({})
 
 
-def validate_selector_config(context, config_value):
+def validate_selector_config(context: ValidationContext, config_value: T) -> EvaluateValueResult[T]:
     check.inst_param(context, "context", ValidationContext)
     check.param_invariant(context.config_type_snap.kind == ConfigTypeKind.SELECTOR, "selector_type")
     check.not_none_param(config_value, "config_value")
@@ -156,7 +160,7 @@ def validate_selector_config(context, config_value):
     # If there is a single field defined on the selector and if it is optional
     # it passes validation. (e.g. a single logger "console")
     if config_value == {}:
-        return _validate_empty_selector_config(context)
+        return _validate_empty_selector_config(context)  # type: ignore
 
     # Now we ensure that the used-provided config has only a a single entry
     # and then continue the validation pass
@@ -196,14 +200,14 @@ def validate_selector_config(context, config_value):
     )
 
     if child_evaluate_value_result.success:
-        return EvaluateValueResult.for_value(
+        return EvaluateValueResult.for_value(  # type: ignore
             frozendict({field_name: child_evaluate_value_result.value})
         )
     else:
-        return child_evaluate_value_result
+        return child_evaluate_value_result  # type: ignore
 
 
-def _validate_shape_config(context, config_value, check_for_extra_incoming_fields):
+def _validate_shape_config(context: ValidationContext, config_value: T, check_for_extra_incoming_fields: bool) -> EvaluateValueResult[T]:
     check.inst_param(context, "context", ValidationContext)
     check.not_none_param(config_value, "config_value")
     check.bool_param(check_for_extra_incoming_fields, "check_for_extra_incoming_fields")
@@ -269,7 +273,7 @@ def _validate_shape_config(context, config_value, check_for_extra_incoming_field
     if errors:
         return EvaluateValueResult.for_errors(errors)
     else:
-        return EvaluateValueResult.for_value(frozendict(config_value))
+        return EvaluateValueResult.for_value(frozendict(config_value))  # type: ignore
 
 
 def validate_permissive_shape_config(context, config_value):
@@ -320,7 +324,7 @@ def _compute_missing_fields_error(context, field_snaps, incoming_fields, field_a
             return create_missing_required_fields_error(context, missing_fields)
 
 
-def validate_array_config(context, config_value):
+def validate_array_config(context: ValidationContext, config_value: T) -> EvaluateValueResult[T]:
     check.inst_param(context, "context", ValidationContext)
     check.invariant(context.config_type_snap.kind == ConfigTypeKind.ARRAY)
     check.not_none_param(config_value, "config_value")
@@ -339,12 +343,12 @@ def validate_array_config(context, config_value):
         if result.success:
             values.append(result.value)
         else:
-            errors += result.errors
+            errors += cast(List, result.errors)
 
-    return EvaluateValueResult(not bool(errors), values, errors)
+    return EvaluateValueResult(not bool(errors), values, errors)  # type: ignore
 
 
-def validate_enum_config(context, config_value):
+def validate_enum_config(context: ValidationContext, config_value: T) -> EvaluateValueResult[T]:
     check.inst_param(context, "context", ValidationContext)
     check.invariant(context.config_type_snap.kind == ConfigTypeKind.ENUM)
     check.not_none_param(config_value, "config_value")
@@ -358,7 +362,7 @@ def validate_enum_config(context, config_value):
     return EvaluateValueResult.for_value(config_value)
 
 
-def process_config(config_type: object, config_dict: Dict) -> EvaluateValueResult:
+def process_config(config_type: object, config_dict: Dict) -> EvaluateValueResult[Dict]:
     config_type = resolve_to_config_type(config_type)
     config_type = check.inst(cast(ConfigType, config_type), ConfigType)
     validate_evr = validate_config(config_type, config_dict)

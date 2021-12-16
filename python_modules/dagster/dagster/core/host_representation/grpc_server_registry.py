@@ -1,10 +1,9 @@
 import sys
 import threading
 import uuid
-from abc import abstractmethod, abstractproperty
-from collections import namedtuple
+from abc import abstractmethod
 from contextlib import AbstractContextManager
-from typing import NamedTuple, Optional, Union
+from typing import Generic, NamedTuple, Optional, TypeVar, Union, cast
 
 import pendulum
 from dagster import check
@@ -42,20 +41,21 @@ class GrpcServerEndpoint(
     def create_client(self) -> DagsterGrpcClient:
         return DagsterGrpcClient(port=self.port, socket=self.socket, host=self.host)
 
+T = TypeVar("T")
 
 # Daemons in different threads can use a shared GrpcServerRegistry to ensure that
 # a single GrpcServerProcess is created for each origin
-class GrpcServerRegistry(AbstractContextManager):
+class GrpcServerRegistry(AbstractContextManager, Generic[T]):
     @abstractmethod
     def supports_origin(self, repository_location_origin: RepositoryLocationOrigin) -> bool:
         pass
 
     @abstractmethod
-    def get_grpc_endpoint(self, repository_location_origin: RepositoryLocationOrigin) -> bool:
+    def get_grpc_endpoint(self, repository_location_origin: T) -> GrpcServerEndpoint:
         pass
 
     @abstractmethod
-    def reload_grpc_endpoint(self, repository_location_origin: RepositoryLocationOrigin) -> bool:
+    def reload_grpc_endpoint(self, repository_location_origin: T) -> GrpcServerEndpoint:
         pass
 
     @property
@@ -92,6 +92,7 @@ class ProcessRegistryEntry(
 # GrpcServerRegistry that creates local gRPC python processes from
 # ManagedGrpcPythonEnvRepositoryLocationOrigins and shares them between threads.
 class ProcessGrpcServerRegistry(GrpcServerRegistry):
+
     def __init__(
         self,
         # How often to reload created processes in a background thread
@@ -144,7 +145,7 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
     def supports_reload(self):
         return True
 
-    def reload_grpc_endpoint(self, repository_location_origin):
+    def reload_grpc_endpoint(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin) -> GrpcServerEndpoint:
         check.inst_param(
             repository_location_origin, "repository_location_origin", RepositoryLocationOrigin
         )
@@ -157,7 +158,7 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
 
             return self._get_grpc_endpoint(repository_location_origin)
 
-    def get_grpc_endpoint(self, repository_location_origin):
+    def get_grpc_endpoint(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin) -> GrpcServerEndpoint:
         check.inst_param(
             repository_location_origin, "repository_location_origin", RepositoryLocationOrigin
         )
@@ -165,7 +166,7 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
         with self._lock:
             return self._get_grpc_endpoint(repository_location_origin)
 
-    def _get_loadable_target_origin(self, repository_location_origin):
+    def _get_loadable_target_origin(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin):
         check.inst_param(
             repository_location_origin,
             "repository_location_origin",
@@ -173,7 +174,7 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
         )
         return repository_location_origin.loadable_target_origin
 
-    def _get_grpc_endpoint(self, repository_location_origin):
+    def _get_grpc_endpoint(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin) -> GrpcServerEndpoint:
         origin_id = repository_location_origin.get_id()
         loadable_target_origin = self._get_loadable_target_origin(repository_location_origin)
         if not loadable_target_origin:
@@ -258,7 +259,7 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
 
     def __exit__(self, exception_type, exception_value, traceback):
         if self._cleanup_thread:
-            self._cleanup_thread_shutdown_event.set()
+            cast(threading.Event, self._cleanup_thread_shutdown_event).set()
             self._cleanup_thread.join()
 
         for process in self._all_processes:

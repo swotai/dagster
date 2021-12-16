@@ -57,7 +57,7 @@ class OutputsConfig(NamedTuple):
         elif isinstance(self.config, dict):
             return self.config.keys()
         else:
-            return {}
+            return set()
 
     @property
     def type_materializer_specs(self) -> list:

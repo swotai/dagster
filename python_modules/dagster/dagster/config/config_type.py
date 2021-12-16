@@ -1,5 +1,5 @@
 from enum import Enum as PythonEnum
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from dagster import check
 from dagster.builtins import BuiltinEnum
@@ -75,7 +75,7 @@ class ConfigType:
         return self._description
 
     @staticmethod
-    def from_builtin_enum(builtin_enum):
+    def from_builtin_enum(builtin_enum) -> "ConfigType":
         check.invariant(BuiltinEnum.contains(builtin_enum), "param must be member of BuiltinEnum")
         return _CONFIG_MAP[builtin_enum]
 
@@ -390,7 +390,8 @@ ConfigBoolInstance = Bool()
 ConfigFloatInstance = Float()
 ConfigIntInstance = Int()
 ConfigStringInstance = String()
-_CONFIG_MAP = {
+
+_CONFIG_MAP: Dict[check.Type, ConfigType] = {
     BuiltinEnum.ANY: ConfigAnyInstance,
     BuiltinEnum.BOOL: ConfigBoolInstance,
     BuiltinEnum.FLOAT: ConfigFloatInstance,
@@ -399,7 +400,7 @@ _CONFIG_MAP = {
 }
 
 
-_CONFIG_MAP_BY_NAME = {
+_CONFIG_MAP_BY_NAME: Dict[str, ConfigType] = {
     "Any": ConfigAnyInstance,
     "Bool": ConfigBoolInstance,
     "Float": ConfigFloatInstance,

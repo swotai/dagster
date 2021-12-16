@@ -184,8 +184,15 @@ class ConfigEnumValueSnap(namedtuple("_ConfigEnumValueSnap", "value description"
 
 @whitelist_for_serdes
 class ConfigFieldSnap(
-    namedtuple(
-        "_ConfigFieldSnap",
+    NamedTuple(
+        "_ConfigFieldSnap", [
+            ("name", Optional[str]),
+            ("type_key", str),
+            ("is_required", bool),
+            ("default_provided", bool),
+            ("default_value_as_json_str", Optional[object]),
+            ("description", Optional[str]),
+        ],
         "name type_key is_required default_provided default_value_as_json_str description",
     )
 ):

@@ -1,12 +1,12 @@
 import sys
-from typing import Any
+from typing import Any, Dict, List, Optional, cast
 
 from dagster import check
 from dagster.utils import ensure_single_item, frozendict, frozenlist
 from dagster.utils.error import serializable_error_info_from_exc_info
 
 from .config_type import ConfigType, ConfigTypeKind
-from .errors import PostProcessingError, create_failed_post_processing_error
+from .errors import EvaluationError, PostProcessingError, create_failed_post_processing_error
 from .evaluate_value_result import EvaluateValueResult
 from .stack import EvaluationStack
 from .traversal_context import TraversalContext, TraversalType
@@ -123,7 +123,7 @@ def _recurse_in_to_selector(context: TraversalContext, config_value: Any) -> Eva
     return field_evr
 
 
-def _recurse_in_to_shape(context: TraversalContext, config_value: Any) -> EvaluateValueResult:
+def _recurse_in_to_shape(context: TraversalContext, config_value: Optional[Dict[str, object]]) -> EvaluateValueResult:
     check.invariant(ConfigTypeKind.is_shape(context.config_type.kind), "Unexpected non shape type")
     config_value = check.opt_dict_param(config_value, "config_value", key_type=str)
 
@@ -169,7 +169,7 @@ def _recurse_in_to_shape(context: TraversalContext, config_value: Any) -> Evalua
     errors = []
     for result in processed_fields.values():
         if not result.success:
-            for error in result.errors:
+            for error in cast(List[EvaluationError], result.errors):
                 errors.append(error)
 
     if errors:
@@ -198,7 +198,7 @@ def _recurse_in_to_array(context: TraversalContext, config_value: Any) -> Evalua
     errors = []
     for result in results:
         if not result.success:
-            errors += result.errors
+            errors += cast(List[EvaluationError], result.errors)
 
     if errors:
         return EvaluateValueResult.for_errors(errors)

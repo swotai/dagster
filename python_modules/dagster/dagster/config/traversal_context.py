@@ -18,7 +18,12 @@ class TraversalType(Enum):
 class ContextData:
     __slots__ = ["_config_schema_snapshot", "_config_type_snap", "_stack"]
 
-    def __init__(self, config_schema_snapshot, config_type_snap, stack):
+    def __init__(
+        self,
+        config_schema_snapshot: ConfigSchemaSnapshot,
+        config_type_snap: ConfigTypeSnap,
+        stack: EvaluationStack,
+    ):
         self._config_schema_snapshot = check.opt_inst_param(
             config_schema_snapshot, "config_schema_snapshot", ConfigSchemaSnapshot
         )
@@ -30,24 +35,24 @@ class ContextData:
         self._stack = check.inst_param(stack, "stack", EvaluationStack)
 
     @property
-    def config_schema_snapshot(self):
+    def config_schema_snapshot(self) -> ConfigSchemaSnapshot:
         return self._config_schema_snapshot
 
     @property
-    def config_type_snap(self):
+    def config_type_snap(self) -> ConfigTypeSnap:
         return self._config_type_snap
 
     @property
-    def config_type_key(self):
+    def config_type_key(self) -> str:
         return self._config_type_snap.key
 
     @property
-    def stack(self):
+    def stack(self) -> EvaluationStack:
         return self._stack
 
 
 class ValidationContext(ContextData):
-    def for_field_snap(self, field_snap):
+    def for_field_snap(self, field_snap: ConfigFieldSnap) -> "ValidationContext":
         check.inst_param(field_snap, "field_snap", ConfigFieldSnap)
         return ValidationContext(
             config_schema_snapshot=self.config_schema_snapshot,
@@ -105,7 +110,7 @@ class TraversalContext(ContextData):
         self._all_config_types = check.dict_param(all_config_types, "all_config_types")
 
     @staticmethod
-    def from_config_type(config_type, stack, traversal_type):
+    def from_config_type(config_type: ConfigType, stack, traversal_type):
         all_config_types = list(iterate_config_types(config_type))
         config_schema_snapshot = config_schema_snapshot_from_config_type(config_type)
         return TraversalContext(

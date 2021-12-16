@@ -158,7 +158,13 @@ def is_callable(obj: Any, desc: str = None) -> Callable:
     return obj
 
 
-def not_none_param(obj: Any, param_name: str) -> Any:
+def not_none(value: Optional[T], desc: str = None) -> T:
+    if value is None:
+        raise ValueError("Expected non-None value: {desc}".format(desc=desc))
+    return value
+
+
+def not_none_param(obj: Optional[T], param_name: str) -> T:
     if obj is None:
         raise _param_invariant_exception(param_name, f"Param {param_name} cannot be none")
     return obj
