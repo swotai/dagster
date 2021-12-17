@@ -1,4 +1,4 @@
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Any, Generator, Generic, List, Optional, TypeVar
 
 from dagster import check
 
@@ -32,10 +32,10 @@ class EvaluateValueResult(Generic[T]):
     def for_value(value: T) -> "EvaluateValueResult[T]":
         return EvaluateValueResult(True, value, None)
 
-    def errors_at_level(self, *levels):
+    def errors_at_level(self, *levels: str) -> List[EvaluationError]:
         return list(self._iterate_errors_at_level(list(levels)))
 
-    def _iterate_errors_at_level(self, levels):
+    def _iterate_errors_at_level(self, levels: List[str]) -> Generator[EvaluationError, None, None]:
         check.list_param(levels, "levels", of_type=str)
         for error in check.is_list(self.errors):
             if error.stack.levels == levels:

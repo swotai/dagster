@@ -10,7 +10,7 @@ from .field import Field
 
 def get_recursive_type_keys(
     config_type_snap: "ConfigTypeSnap", config_schema_snapshot: "ConfigSchemaSnapshot"
-):
+) -> Set[str]:
     check.inst_param(config_type_snap, "config_type_snap", ConfigTypeSnap)
     check.inst_param(config_schema_snapshot, "config_schema_snapshot", ConfigSchemaSnapshot)
     result_keys = set()
@@ -160,7 +160,7 @@ class ConfigTypeSnap(
             # all closed generics have type params
             return cast(List[str], self.type_param_keys)
         elif ConfigTypeKind.has_fields(self.kind):
-            return [field.type_key for field in cast(List[ConfigFieldSnap], self.fields)]
+            return [field.type_key for field in cast(List[ConfigFieldSnap], check.not_none(self.fields))]
         else:
             return []
 
@@ -193,7 +193,6 @@ class ConfigFieldSnap(
             ("default_value_as_json_str", Optional[object]),
             ("description", Optional[str]),
         ],
-        "name type_key is_required default_provided default_value_as_json_str description",
     )
 ):
     def __new__(

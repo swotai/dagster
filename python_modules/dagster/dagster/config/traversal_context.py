@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Dict
 
 from dagster import check
 
@@ -54,13 +55,14 @@ class ContextData:
 class ValidationContext(ContextData):
     def for_field_snap(self, field_snap: ConfigFieldSnap) -> "ValidationContext":
         check.inst_param(field_snap, "field_snap", ConfigFieldSnap)
+        field_snap_name = check.not_none(field_snap.name)
         return ValidationContext(
             config_schema_snapshot=self.config_schema_snapshot,
             config_type_snap=self.config_schema_snapshot.get_config_snap(field_snap.type_key),
-            stack=self.stack.for_field(field_snap.name),
+            stack=self.stack.for_field(field_snap_name),
         )
 
-    def for_array(self, index):
+    def for_array(self, index: int) -> "ValidationContext":
         check.int_param(index, "index")
         return ValidationContext(
             config_schema_snapshot=self.config_schema_snapshot,
@@ -70,7 +72,7 @@ class ValidationContext(ContextData):
             stack=self.stack.for_array_index(index),
         )
 
-    def for_new_config_type_key(self, config_type_key):
+    def for_new_config_type_key(self, config_type_key: str) -> "ValidationContext":
         check.str_param(config_type_key, "config_type_key")
         return ValidationContext(
             config_schema_snapshot=self.config_schema_snapshot,
@@ -78,7 +80,7 @@ class ValidationContext(ContextData):
             stack=self.stack,
         )
 
-    def for_nullable_inner_type(self):
+    def for_nullable_inner_type(self) -> "ValidationContext":
         return ValidationContext(
             config_schema_snapshot=self.config_schema_snapshot,
             config_type_snap=self.config_schema_snapshot.get_config_snap(
@@ -93,12 +95,12 @@ class TraversalContext(ContextData):
 
     def __init__(
         self,
-        config_schema_snapshot,
-        config_type_snap,
-        config_type,
-        stack,
-        traversal_type,
-        all_config_types,
+        config_schema_snapshot: ConfigSchemaSnapshot,
+        config_type_snap: ConfigTypeSnap,
+        config_type: ConfigType,
+        stack: EvaluationStack,
+        traversal_type: TraversalType,
+        all_config_types: Dict[str, ConfigType],
     ):
         super(TraversalContext, self).__init__(
             config_schema_snapshot=config_schema_snapshot,
@@ -107,10 +109,10 @@ class TraversalContext(ContextData):
         )
         self._config_type = check.inst_param(config_type, "config_type", ConfigType)
         self._traversal_type = check.inst_param(traversal_type, "traversal_type", TraversalType)
-        self._all_config_types = check.dict_param(all_config_types, "all_config_types")
+        self._all_config_types = check.dict_param(all_config_types, "all_config_types", key_type=str, value_type=ConfigType)
 
     @staticmethod
-    def from_config_type(config_type: ConfigType, stack, traversal_type):
+    def from_config_type(config_type: ConfigType, stack: EvaluationStack, traversal_type: TraversalType) -> "TraversalContext":
         all_config_types = list(iterate_config_types(config_type))
         config_schema_snapshot = config_schema_snapshot_from_config_type(config_type)
         return TraversalContext(
@@ -123,35 +125,35 @@ class TraversalContext(ContextData):
         )
 
     @property
-    def all_config_types(self):
+    def all_config_types(self) -> Dict[str, ConfigType]:
         return self._all_config_types
 
     @property
-    def config_type(self):
+    def config_type(self) -> ConfigType:
         return self._config_type
 
     @property
-    def traversal_type(self):
+    def traversal_type(self) -> TraversalType:
         return self._traversal_type
 
     @property
-    def do_post_process(self):
+    def do_post_process(self) -> bool:
         return self.traversal_type == TraversalType.RESOLVE_DEFAULTS_AND_POSTPROCESS
 
-    def for_array(self, index):
+    def for_array(self, index: int) -> "TraversalContext":
         check.int_param(index, "index")
         return TraversalContext(
             config_schema_snapshot=self.config_schema_snapshot,
             config_type_snap=self.config_schema_snapshot.get_config_snap(
                 self.config_type_snap.inner_type_key
             ),
-            config_type=self.config_type.inner_type,
+            config_type=self.config_type.inner_type,  # type: ignore
             stack=self.stack.for_array_index(index),
             traversal_type=self.traversal_type,
             all_config_types=self.all_config_types,
         )
 
-    def for_field(self, field_def, field_name):
+    def for_field(self, field_def: Field, field_name: str) -> "TraversalContext":
         check.inst_param(field_def, "field_def", Field)
         check.str_param(field_name, "field_name")
         return TraversalContext(
@@ -163,19 +165,19 @@ class TraversalContext(ContextData):
             all_config_types=self.all_config_types,
         )
 
-    def for_nullable_inner_type(self):
+    def for_nullable_inner_type(self) -> "TraversalContext":
         return TraversalContext(
             config_schema_snapshot=self.config_schema_snapshot,
             config_type_snap=self.config_schema_snapshot.get_config_snap(
                 self.config_type_snap.inner_type_key
             ),
-            config_type=self.config_type.inner_type,
+            config_type=self.config_type.inner_type,  # type: ignore
             stack=self.stack,
             traversal_type=self.traversal_type,
             all_config_types=self.all_config_types,
         )
 
-    def for_new_config_type(self, config_type):
+    def for_new_config_type(self, config_type: ConfigType) -> "TraversalContext":
         return TraversalContext(
             config_schema_snapshot=self.config_schema_snapshot,
             config_type_snap=self.config_schema_snapshot.get_config_snap(config_type.key),

@@ -1,6 +1,6 @@
 import inspect
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from dagster import check
 from dagster.core.errors import DagsterInvalidConfigError, DagsterInvalidInvocationError
@@ -102,7 +102,7 @@ def _resolve_bound_config(resource_config: Any, resource_def: "ResourceDefinitio
         raise DagsterInvalidConfigError(
             "Error in config for resource ", config_evr.errors, resource_config
         )
-    validated_config = config_evr.value.get("config")
+    validated_config = cast(Dict[str, Any], config_evr.value).get("config")
     mapped_config_evr = resource_def.apply_config_mapping({"config": validated_config})
     if not mapped_config_evr.success:
         raise DagsterInvalidConfigError(
@@ -110,5 +110,5 @@ def _resolve_bound_config(resource_config: Any, resource_def: "ResourceDefinitio
             mapped_config_evr.errors,
             validated_config,
         )
-    validated_config = mapped_config_evr.value.get("config")
+    validated_config = cast(Dict[str, Any], mapped_config_evr.value).get("config")
     return validated_config

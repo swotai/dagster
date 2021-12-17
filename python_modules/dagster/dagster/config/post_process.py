@@ -69,7 +69,7 @@ def _recursively_resolve_defaults(
     elif context.config_type.kind == ConfigTypeKind.SCALAR_UNION:
         return _recurse_in_to_scalar_union(context, config_value)
     else:
-        check.failed("Unsupported type {name}".format(name=context.config_type.name))
+        check.failed("Unsupported type {name}".format(name=context.config_type.key))
 
 
 def _post_process(context: TraversalContext, config_value: Any) -> EvaluateValueResult:
@@ -88,11 +88,11 @@ def _recurse_in_to_scalar_union(
 ) -> EvaluateValueResult:
     if isinstance(config_value, dict) or isinstance(config_value, list):
         return _recursively_process_config(
-            context.for_new_config_type(context.config_type.non_scalar_type), config_value
+            context.for_new_config_type(context.config_type.non_scalar_type), config_value  # type: ignore
         )
     else:
         return _recursively_process_config(
-            context.for_new_config_type(context.config_type.scalar_type), config_value
+            context.for_new_config_type(context.config_type.scalar_type), config_value  # type: ignore
         )
 
 
@@ -106,10 +106,10 @@ def _recurse_in_to_selector(context: TraversalContext, config_value: Any) -> Eva
         check.invariant(config_value and len(config_value) == 1)
         field_name, incoming_field_value = ensure_single_item(config_value)
     else:
-        field_name, field_def = ensure_single_item(context.config_type.fields)
+        field_name, field_def = ensure_single_item(context.config_type.fields)  # type: ignore
         incoming_field_value = field_def.default_value if field_def.default_provided else None
 
-    field_def = context.config_type.fields[field_name]
+    field_def = context.config_type.fields[field_name]  # type: ignore
 
     field_evr = _recursively_process_config(
         context.for_field(field_def, field_name),
@@ -127,7 +127,7 @@ def _recurse_in_to_shape(context: TraversalContext, config_value: Optional[Dict[
     check.invariant(ConfigTypeKind.is_shape(context.config_type.kind), "Unexpected non shape type")
     config_value = check.opt_dict_param(config_value, "config_value", key_type=str)
 
-    fields = context.config_type.fields
+    fields = context.config_type.fields  # type: ignore
 
     field_aliases = getattr(context.config_type, "field_aliases", None)
     field_aliases = check.opt_dict_param(
@@ -186,7 +186,7 @@ def _recurse_in_to_array(context: TraversalContext, config_value: Any) -> Evalua
     if not config_value:
         return EvaluateValueResult.for_value([])
 
-    if context.config_type.inner_type.kind != ConfigTypeKind.NONEABLE:
+    if cast(ConfigType, context.config_type.inner_type).kind != ConfigTypeKind.NONEABLE:  # type: ignore
         if any((cv is None for cv in config_value)):
             check.failed("Null array member not caught in validation")
 

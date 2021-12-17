@@ -119,7 +119,7 @@ def failed(desc: str) -> NoReturn:  # type: ignore[misc]
     raise CheckError("Failure condition: {desc}".format(desc=desc))
 
 
-def not_implemented(desc: str):
+def not_implemented(desc: str) -> NoReturn:
     if not isinstance(desc, str):
         raise CheckError("desc argument must be a string")
 

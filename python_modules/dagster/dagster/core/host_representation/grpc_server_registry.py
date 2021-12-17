@@ -188,6 +188,8 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
             active_entry = self._active_entries[origin_id]
             refresh_server = loadable_target_origin != active_entry.loadable_target_origin
 
+        server_process: Union[GrpcServerProcess, SerializableErrorInfo]
+        new_server_id: Optional[str]
         if refresh_server:
             try:
                 new_server_id = str(uuid.uuid4())

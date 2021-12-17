@@ -3,6 +3,7 @@ import hashlib
 from typing import Any, Dict
 
 from dagster import check
+from dagster.config.field import Field
 from dagster.core.errors import DagsterInvalidConfigDefinitionError
 
 from .config_type import ConfigType, ConfigTypeKind
@@ -258,7 +259,7 @@ def is_potential_field(potential_field):
     )
 
 
-def convert_fields_to_dict_type(fields):
+def convert_fields_to_dict_type(fields: Dict[str, Field]):
     return _convert_fields_to_dict_type(fields, fields, [])
 
 
@@ -270,7 +271,7 @@ def expand_fields_dict(fields):
     return _expand_fields_dict(fields, fields, [])
 
 
-def _expand_fields_dict(original_root, fields, stack):
+def _expand_fields_dict(original_root: Dict[str, Field], fields: Dict[str, Field], stack):
     check.dict_param(fields, "fields")
     return {
         name: _convert_potential_field(original_root, value, stack + [name])
