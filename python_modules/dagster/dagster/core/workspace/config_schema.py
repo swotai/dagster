@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from dagster import check
 from dagster.config import Field, ScalarUnion, Selector
@@ -10,15 +10,19 @@ from dagster.core.errors import DagsterInvalidConfigError
 from dagster.utils import merge_dicts
 
 
-def process_workspace_config(workspace_config: Dict) -> EvaluateValueResult:
+def process_workspace_config(
+    workspace_config: Dict[str, object]
+) -> EvaluateValueResult[Dict[str, object]]:
     workspace_config = check.dict_param(workspace_config, "workspace_config")
 
     return process_config(WORKSPACE_CONFIG_SCHEMA, workspace_config)
 
 
-def ensure_workspace_config(workspace_config: object, yaml_path: str):
+def ensure_workspace_config(
+    workspace_config: Dict[str, object], yaml_path: str
+) -> Dict[str, object]:
     check.str_param(yaml_path, "yaml_path")
-    workspace_config = check.dict_param(workspace_config, "workspace_config")
+    check.dict_param(workspace_config, "workspace_config", key_type=str)
 
     validation_result = process_workspace_config(workspace_config)
     if not validation_result.success:
@@ -29,10 +33,10 @@ def ensure_workspace_config(workspace_config: object, yaml_path: str):
             validation_result.errors,
             workspace_config,
         )
-    return validation_result.value
+    return cast(Dict[str, object], validation_result.value)
 
 
-def _get_target_config():
+def _get_target_config() -> Dict[str, ScalarUnion]:
     return {
         "python_file": ScalarUnion(
             scalar_type=str,

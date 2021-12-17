@@ -33,7 +33,8 @@ def location_origins_from_yaml_paths(yaml_paths: List[str]) -> List[RepositoryLo
     check.list_param(yaml_paths, "yaml_paths", str)
 
     workspace_configs = [load_yaml_from_path(yaml_path) for yaml_path in yaml_paths]
-    origins_by_name: OrderedDict[str, RepositoryLocationOrigin] = OrderedDict()
+    workspace_configs = [check.is_dict(workspace_config) for workspace_config in workspace_configs]
+    origins_by_name: Dict[str, RepositoryLocationOrigin] = OrderedDict()
     for workspace_config, yaml_path in zip(workspace_configs, yaml_paths):
         check.invariant(
             workspace_config is not None,
@@ -50,12 +51,12 @@ def location_origins_from_yaml_paths(yaml_paths: List[str]) -> List[RepositoryLo
 
 
 def location_origins_from_config(
-    workspace_config: object, yaml_path: str
+    workspace_config: Dict[str, object], yaml_path: str
 ) -> Dict[str, RepositoryLocationOrigin]:
     workspace_config = ensure_workspace_config(workspace_config, yaml_path)
-
-    location_origins: OrderedDict[str, RepositoryLocationOrigin] = OrderedDict()
-    for location_config in workspace_config["load_from"]:
+    location_configs = check.list_elem(workspace_config, "load_from", of_type=dict)
+    location_origins: Dict[str, RepositoryLocationOrigin] = OrderedDict()
+    for location_config in location_configs:
         origin = _location_origin_from_location_config(location_config, yaml_path)
         check.invariant(
             location_origins.get(origin.location_name) is None,

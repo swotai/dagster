@@ -513,7 +513,7 @@ def load_def_in_python_file(python_file, attribute, working_directory):
 
 def def_from_pointer(
     pointer: CodePointer,
-) -> Union[PipelineDefinition, RepositoryDefinition, GraphDefinition]:
+) -> Union["PipelineDefinition", "RepositoryDefinition", "GraphDefinition"]:
     target = pointer.load_target()
 
     from .pipeline_definition import PipelineDefinition
@@ -539,7 +539,7 @@ def def_from_pointer(
     return _check_is_loadable(target())
 
 
-def pipeline_def_from_pointer(pointer: CodePointer) -> PipelineDefinition:
+def pipeline_def_from_pointer(pointer: CodePointer) -> "PipelineDefinition":
     from .pipeline_definition import PipelineDefinition
 
     target = def_from_pointer(pointer)
@@ -554,14 +554,15 @@ def pipeline_def_from_pointer(pointer: CodePointer) -> PipelineDefinition:
 
 
 @overload
-def repository_def_from_target_def(
-    target: Union[RepositoryDefinition, PipelineDefinition, GraphDefinition]
-) -> RepositoryDefinition:
+# NOTE: mypy can't handle these overloads but pyright can
+def repository_def_from_target_def(  # type: ignore
+    target: Union["RepositoryDefinition", "PipelineDefinition", "GraphDefinition"]
+) -> "RepositoryDefinition":
     ...
 
 
 @overload
-def repository_def_from_target_def(target: RepositoryDefinition) -> RepositoryDefinition:
+def repository_def_from_target_def(target: object) -> None:
     ...
 
 
@@ -583,7 +584,7 @@ def repository_def_from_target_def(target):
         return None
 
 
-def repository_def_from_pointer(pointer):
+def repository_def_from_pointer(pointer: CodePointer) -> "RepositoryDefinition":
     target = def_from_pointer(pointer)
     repo_def = repository_def_from_target_def(target)
     if not repo_def:

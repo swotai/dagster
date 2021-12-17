@@ -1,4 +1,3 @@
-from collections import namedtuple
 from typing import List, NamedTuple, Tuple
 
 from dagster import check

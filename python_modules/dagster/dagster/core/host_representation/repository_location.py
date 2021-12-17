@@ -271,7 +271,9 @@ class InProcessRepositoryLocation(RepositoryLocation):
 
     @property
     def container_image(self) -> str:
-        return self._recon_repo.container_image
+        # TODO: `container_image` can be None, not clear if the type annotation
+        # or method logic here is wrong
+        return self._recon_repo.container_image  # type: ignore
 
     @property
     def repository_code_pointer_dict(self) -> Dict[str, CodePointer]:

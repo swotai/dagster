@@ -1,6 +1,6 @@
 import os
 import sys
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from collections import namedtuple
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Dict, NamedTuple, NoReturn, Optional, Set, cast
