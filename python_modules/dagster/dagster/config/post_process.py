@@ -123,7 +123,9 @@ def _recurse_in_to_selector(context: TraversalContext, config_value: Any) -> Eva
     return field_evr
 
 
-def _recurse_in_to_shape(context: TraversalContext, config_value: Optional[Dict[str, object]]) -> EvaluateValueResult:
+def _recurse_in_to_shape(
+    context: TraversalContext, config_value: Optional[Dict[str, object]]
+) -> EvaluateValueResult:
     check.invariant(ConfigTypeKind.is_shape(context.config_type.kind), "Unexpected non shape type")
     config_value = check.opt_dict_param(config_value, "config_value", key_type=str)
 

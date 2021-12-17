@@ -95,23 +95,30 @@ class WhitelistMap(NamedTuple):
 
 _WHITELIST_MAP = WhitelistMap.create()
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 # Bare decorator usage
 @overload
-def atomic(__func: F) -> F: ...
+def atomic(__func: F) -> F:
+    ...
+
+
 # Decorator with arguments
 @overload
-def atomic(__func: None=None, *, savepoint: bool = True) -> Callable[[F], F]: ...
+def atomic(__func: None = None, *, savepoint: bool = True) -> Callable[[F], F]:
+    ...
+
 
 # Implementation
 def atomic(__func: Callable[..., Any] = None, *, savepoint: bool = True):
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         ...  # Code goes here
+
     if __func is not None:
         return decorator(__func)
     else:
         return decorator
+
 
 @overload
 def whitelist_for_serdes(__cls: Type) -> Type:
@@ -119,11 +126,15 @@ def whitelist_for_serdes(__cls: Type) -> Type:
 
 
 @overload
-def whitelist_for_serdes(__cls: None = None, *, serializer: Type["Serializer"]) -> Callable[[Type], Type]:
+def whitelist_for_serdes(
+    __cls: None = None, *, serializer: Type["Serializer"]
+) -> Callable[[Type], Type]:
     ...
 
 
-def whitelist_for_serdes(__cls: Optional[Type]=None, *, serializer: Optional[Type["Serializer"]]=None):
+def whitelist_for_serdes(
+    __cls: Optional[Type] = None, *, serializer: Optional[Type["Serializer"]] = None
+):
     """
     Decorator to whitelist a named tuple or enum to be serializable.
 
@@ -139,8 +150,6 @@ def whitelist_for_serdes(__cls: Optional[Type]=None, *, serializer: Optional[Typ
         check.subclass_param(serializer, "serializer", Serializer)
         serializer = cast(Type[Serializer], serializer)
         return _whitelist_for_serdes(whitelist_map=_WHITELIST_MAP, serializer=serializer)
-
-
 
     # # target (no args passed to decorator)
     # if isclass(serializer) and not issubclass(serializer, Serializer):

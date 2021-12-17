@@ -119,7 +119,10 @@ def _validate_config(context: ValidationContext, config_value: object) -> Evalua
     else:
         check.failed("Unsupported ConfigTypeKind {}".format(kind))
 
-def _validate_scalar_union_config(context: ValidationContext, config_value: T) -> EvaluateValueResult[T]:
+
+def _validate_scalar_union_config(
+    context: ValidationContext, config_value: T
+) -> EvaluateValueResult[T]:
     check.inst_param(context, "context", ValidationContext)
     check.param_invariant(context.config_type_snap.kind == ConfigTypeKind.SCALAR_UNION, "context")
     check.not_none_param(config_value, "config_value")
@@ -127,7 +130,7 @@ def _validate_scalar_union_config(context: ValidationContext, config_value: T) -
     if isinstance(config_value, dict) or isinstance(config_value, list):
         return _validate_config(
             context.for_new_config_type_key(context.config_type_snap.non_scalar_type_key),
-            cast(T, config_value)
+            cast(T, config_value),
         )
     else:
         return _validate_config(
@@ -151,7 +154,9 @@ def _validate_empty_selector_config(context: ValidationContext) -> EvaluateValue
     return EvaluateValueResult.for_value({})
 
 
-def validate_selector_config(context: ValidationContext, config_value: object) -> EvaluateValueResult[Dict[str, object]]:
+def validate_selector_config(
+    context: ValidationContext, config_value: object
+) -> EvaluateValueResult[Dict[str, object]]:
     check.inst_param(context, "context", ValidationContext)
     check.param_invariant(context.config_type_snap.kind == ConfigTypeKind.SELECTOR, "selector_type")
     check.not_none_param(config_value, "config_value")
@@ -208,13 +213,18 @@ def validate_selector_config(context: ValidationContext, config_value: object) -
         return child_evaluate_value_result  # type: ignore
 
 
-def _validate_shape_config(context: ValidationContext, config_value: object, check_for_extra_incoming_fields: bool) -> EvaluateValueResult[Dict[str, object]]:
+def _validate_shape_config(
+    context: ValidationContext, config_value: object, check_for_extra_incoming_fields: bool
+) -> EvaluateValueResult[Dict[str, object]]:
     check.inst_param(context, "context", ValidationContext)
     check.not_none_param(config_value, "config_value")
     check.bool_param(check_for_extra_incoming_fields, "check_for_extra_incoming_fields")
 
     field_aliases = check.opt_dict_param(
-        cast(Dict[str, str], context.config_type_snap.field_aliases), "field_aliases", key_type=str, value_type=str
+        cast(Dict[str, str], context.config_type_snap.field_aliases),
+        "field_aliases",
+        key_type=str,
+        value_type=str,
     )
 
     if not isinstance(config_value, dict):
@@ -279,7 +289,9 @@ def _validate_shape_config(context: ValidationContext, config_value: object, che
         return EvaluateValueResult.for_value(frozendict(config_value))  # type: ignore
 
 
-def validate_permissive_shape_config(context: ValidationContext, config_value: object) -> EvaluateValueResult[Dict[str, object]]:
+def validate_permissive_shape_config(
+    context: ValidationContext, config_value: object
+) -> EvaluateValueResult[Dict[str, object]]:
     check.inst_param(context, "context", ValidationContext)
     check.invariant(context.config_type_snap.kind == ConfigTypeKind.PERMISSIVE_SHAPE)
     check.not_none_param(config_value, "config_value")
@@ -287,7 +299,9 @@ def validate_permissive_shape_config(context: ValidationContext, config_value: o
     return _validate_shape_config(context, config_value, check_for_extra_incoming_fields=False)
 
 
-def validate_shape_config(context: ValidationContext, config_value: object) -> EvaluateValueResult[Dict[str, object]]:
+def validate_shape_config(
+    context: ValidationContext, config_value: object
+) -> EvaluateValueResult[Dict[str, object]]:
     check.inst_param(context, "context", ValidationContext)
     check.invariant(context.config_type_snap.kind == ConfigTypeKind.STRICT_SHAPE)
     check.not_none_param(config_value, "config_value")
@@ -300,7 +314,9 @@ def _append_if_error(errors: List[EvaluationError], maybe_error: Optional[Evalua
         errors.append(maybe_error)
 
 
-def _check_for_extra_incoming_fields(context: ValidationContext, defined_field_names: Set[str], incoming_field_names: Set[str]) -> Optional[EvaluationError]:
+def _check_for_extra_incoming_fields(
+    context: ValidationContext, defined_field_names: Set[str], incoming_field_names: Set[str]
+) -> Optional[EvaluationError]:
     extra_fields = list(incoming_field_names - defined_field_names)
 
     if extra_fields:
@@ -311,7 +327,12 @@ def _check_for_extra_incoming_fields(context: ValidationContext, defined_field_n
     return None
 
 
-def _compute_missing_fields_error(context: ValidationContext, field_snaps: List[ConfigFieldSnap], incoming_fields: Set[str], field_aliases: Dict[str, str]) -> Optional[EvaluationError]:
+def _compute_missing_fields_error(
+    context: ValidationContext,
+    field_snaps: List[ConfigFieldSnap],
+    incoming_fields: Set[str],
+    field_aliases: Dict[str, str],
+) -> Optional[EvaluationError]:
     missing_fields = []
 
     for field_snap in field_snaps:
@@ -329,7 +350,9 @@ def _compute_missing_fields_error(context: ValidationContext, field_snaps: List[
     return None
 
 
-def validate_array_config(context: ValidationContext, config_value: object) -> EvaluateValueResult[List[object]]:
+def validate_array_config(
+    context: ValidationContext, config_value: object
+) -> EvaluateValueResult[List[object]]:
     check.inst_param(context, "context", ValidationContext)
     check.invariant(context.config_type_snap.kind == ConfigTypeKind.ARRAY)
     check.not_none_param(config_value, "config_value")
@@ -353,7 +376,9 @@ def validate_array_config(context: ValidationContext, config_value: object) -> E
     return EvaluateValueResult(not bool(errors), values, errors)  # type: ignore
 
 
-def validate_enum_config(context: ValidationContext, config_value: object) -> EvaluateValueResult[str]:
+def validate_enum_config(
+    context: ValidationContext, config_value: object
+) -> EvaluateValueResult[str]:
     check.inst_param(context, "context", ValidationContext)
     check.invariant(context.config_type_snap.kind == ConfigTypeKind.ENUM)
     check.not_none_param(config_value, "config_value")

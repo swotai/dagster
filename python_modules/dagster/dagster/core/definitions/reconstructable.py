@@ -3,6 +3,7 @@ import os
 import sys
 from collections import namedtuple
 from functools import lru_cache
+from typing import TYPE_CHECKING, NamedTuple, Optional, Union, overload
 
 from dagster import check, seven
 from dagster.core.code_pointer import (
@@ -20,15 +21,27 @@ from dagster.utils.backcompat import experimental
 
 from .pipeline_base import IPipeline
 
+if TYPE_CHECKING:
+    from .repository_definition import RepositoryDefinition
+    from .pipeline_definition import PipelineDefinition
+    from .graph_definition import GraphDefinition
 
-def get_ephemeral_repository_name(pipeline_name):
+
+def get_ephemeral_repository_name(pipeline_name: str) -> str:
     check.str_param(pipeline_name, "pipeline_name")
     return "__repository__{pipeline_name}".format(pipeline_name=pipeline_name)
 
 
 @whitelist_for_serdes
 class ReconstructableRepository(
-    namedtuple("_ReconstructableRepository", "pointer container_image executable_path")
+    NamedTuple(
+        "_ReconstructableRepository",
+        [
+            ("pointer", CodePointer),
+            ("container_image", Optional[str]),
+            ("executable_path", Optional[str]),
+        ],
+    )
 ):
     def __new__(
         cls,
@@ -498,7 +511,9 @@ def load_def_in_python_file(python_file, attribute, working_directory):
     return def_from_pointer(CodePointer.from_python_file(python_file, attribute, working_directory))
 
 
-def def_from_pointer(pointer):
+def def_from_pointer(
+    pointer: CodePointer,
+) -> Union[PipelineDefinition, RepositoryDefinition, GraphDefinition]:
     target = pointer.load_target()
 
     from .pipeline_definition import PipelineDefinition
@@ -524,7 +539,7 @@ def def_from_pointer(pointer):
     return _check_is_loadable(target())
 
 
-def pipeline_def_from_pointer(pointer):
+def pipeline_def_from_pointer(pointer: CodePointer) -> PipelineDefinition:
     from .pipeline_definition import PipelineDefinition
 
     target = def_from_pointer(pointer)
@@ -536,6 +551,18 @@ def pipeline_def_from_pointer(pointer):
         "CodePointer ({str}) must resolve to a JobDefinition (or PipelineDefinition for legacy code). "
         "Received a {type}".format(str=pointer.describe(), type=type(target))
     )
+
+
+@overload
+def repository_def_from_target_def(
+    target: Union[RepositoryDefinition, PipelineDefinition, GraphDefinition]
+) -> RepositoryDefinition:
+    ...
+
+
+@overload
+def repository_def_from_target_def(target: RepositoryDefinition) -> RepositoryDefinition:
+    ...
 
 
 def repository_def_from_target_def(target):

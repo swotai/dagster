@@ -1,7 +1,7 @@
 import os
 import sys
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Dict, Generator, Optional
+from typing import TYPE_CHECKING, Dict, Generator, Iterable, Optional
 
 import click
 from click import UsageError
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 WORKSPACE_TARGET_WARNING = "Can only use ONE of --workspace/-w, --python-file/-f, --module-name/-m, --grpc-port, --grpc-socket."
 
 
-def _cli_load_invariant(condition, msg=None) -> None:
+def _cli_load_invariant(condition: object, msg=None) -> None:
     msg = (
         msg
         or "Invalid set of CLI arguments for loading repository/pipeline. See --help for details."
@@ -40,12 +40,12 @@ def _cli_load_invariant(condition, msg=None) -> None:
         raise UsageError(msg)
 
 
-def _check_cli_arguments_none(kwargs, *keys):
+def _check_cli_arguments_none(kwargs: Dict[str, object], *keys: str) -> None:
     for key in keys:
         _cli_load_invariant(not kwargs.get(key))
 
 
-def are_all_keys_empty(kwargs, keys):
+def are_all_keys_empty(kwargs: Dict[str, object], keys: Iterable[str]) -> bool:
     for key in keys:
         if kwargs.get(key):
             return False
@@ -90,7 +90,7 @@ def created_workspace_load_target(kwargs: Dict[str, object]) -> WorkspaceLoadTar
             "grpc_port",
             "grpc_socket",
         )
-        return WorkspaceFileTarget(paths=list(check.list_elem(kwargs, 'workspace')))
+        return WorkspaceFileTarget(paths=list(check.list_elem(kwargs, "workspace")))
     if kwargs.get("python_file"):
         _check_cli_arguments_none(
             kwargs,

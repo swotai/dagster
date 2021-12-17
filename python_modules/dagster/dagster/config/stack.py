@@ -31,8 +31,7 @@ class EvaluationStackEntry:  # marker interface
 
 
 class EvaluationStackPathEntry(
-    NamedTuple("_EvaluationStackEntry", [("field_name", str)]),
-    EvaluationStackEntry
+    NamedTuple("_EvaluationStackEntry", [("field_name", str)]), EvaluationStackEntry
 ):
     def __new__(cls, field_name: str):
         return super(EvaluationStackPathEntry, cls).__new__(

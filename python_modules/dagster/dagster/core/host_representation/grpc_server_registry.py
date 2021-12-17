@@ -41,6 +41,7 @@ class GrpcServerEndpoint(
     def create_client(self) -> DagsterGrpcClient:
         return DagsterGrpcClient(port=self.port, socket=self.socket, host=self.host)
 
+
 T = TypeVar("T")
 
 # Daemons in different threads can use a shared GrpcServerRegistry to ensure that
@@ -92,7 +93,6 @@ class ProcessRegistryEntry(
 # GrpcServerRegistry that creates local gRPC python processes from
 # ManagedGrpcPythonEnvRepositoryLocationOrigins and shares them between threads.
 class ProcessGrpcServerRegistry(GrpcServerRegistry):
-
     def __init__(
         self,
         # How often to reload created processes in a background thread
@@ -145,7 +145,9 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
     def supports_reload(self):
         return True
 
-    def reload_grpc_endpoint(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin) -> GrpcServerEndpoint:
+    def reload_grpc_endpoint(
+        self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin
+    ) -> GrpcServerEndpoint:
         check.inst_param(
             repository_location_origin, "repository_location_origin", RepositoryLocationOrigin
         )
@@ -158,7 +160,9 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
 
             return self._get_grpc_endpoint(repository_location_origin)
 
-    def get_grpc_endpoint(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin) -> GrpcServerEndpoint:
+    def get_grpc_endpoint(
+        self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin
+    ) -> GrpcServerEndpoint:
         check.inst_param(
             repository_location_origin, "repository_location_origin", RepositoryLocationOrigin
         )
@@ -166,7 +170,9 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
         with self._lock:
             return self._get_grpc_endpoint(repository_location_origin)
 
-    def _get_loadable_target_origin(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin):
+    def _get_loadable_target_origin(
+        self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin
+    ):
         check.inst_param(
             repository_location_origin,
             "repository_location_origin",
@@ -174,7 +180,9 @@ class ProcessGrpcServerRegistry(GrpcServerRegistry):
         )
         return repository_location_origin.loadable_target_origin
 
-    def _get_grpc_endpoint(self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin) -> GrpcServerEndpoint:
+    def _get_grpc_endpoint(
+        self, repository_location_origin: ManagedGrpcPythonEnvRepositoryLocationOrigin
+    ) -> GrpcServerEndpoint:
         origin_id = repository_location_origin.get_id()
         loadable_target_origin = self._get_loadable_target_origin(repository_location_origin)
         if not loadable_target_origin:

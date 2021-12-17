@@ -109,10 +109,14 @@ class TraversalContext(ContextData):
         )
         self._config_type = check.inst_param(config_type, "config_type", ConfigType)
         self._traversal_type = check.inst_param(traversal_type, "traversal_type", TraversalType)
-        self._all_config_types = check.dict_param(all_config_types, "all_config_types", key_type=str, value_type=ConfigType)
+        self._all_config_types = check.dict_param(
+            all_config_types, "all_config_types", key_type=str, value_type=ConfigType
+        )
 
     @staticmethod
-    def from_config_type(config_type: ConfigType, stack: EvaluationStack, traversal_type: TraversalType) -> "TraversalContext":
+    def from_config_type(
+        config_type: ConfigType, stack: EvaluationStack, traversal_type: TraversalType
+    ) -> "TraversalContext":
         all_config_types = list(iterate_config_types(config_type))
         config_schema_snapshot = config_schema_snapshot_from_config_type(config_type)
         return TraversalContext(

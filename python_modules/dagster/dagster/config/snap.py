@@ -160,7 +160,9 @@ class ConfigTypeSnap(
             # all closed generics have type params
             return cast(List[str], self.type_param_keys)
         elif ConfigTypeKind.has_fields(self.kind):
-            return [field.type_key for field in cast(List[ConfigFieldSnap], check.not_none(self.fields))]
+            return [
+                field.type_key for field in cast(List[ConfigFieldSnap], check.not_none(self.fields))
+            ]
         else:
             return []
 
@@ -185,7 +187,8 @@ class ConfigEnumValueSnap(namedtuple("_ConfigEnumValueSnap", "value description"
 @whitelist_for_serdes
 class ConfigFieldSnap(
     NamedTuple(
-        "_ConfigFieldSnap", [
+        "_ConfigFieldSnap",
+        [
             ("name", Optional[str]),
             ("type_key", str),
             ("is_required", bool),

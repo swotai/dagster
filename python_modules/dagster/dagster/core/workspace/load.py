@@ -78,7 +78,9 @@ def _location_origin_from_module_config(
     return location_origin_from_module_name(module_name, attribute, location_name, executable_path)
 
 
-def _get_module_config_data(python_module_config: Union[str, Dict[str, str]], default_executable_path: str) -> Tuple[str, Optional[str], Optional[str], str]:
+def _get_module_config_data(
+    python_module_config: Union[str, Dict[str, str]], default_executable_path: str
+) -> Tuple[str, Optional[str], Optional[str], str]:
     return (
         (python_module_config, None, None, default_executable_path)
         if isinstance(python_module_config, str)
@@ -127,7 +129,9 @@ def _location_origin_from_package_config(
     return location_origin_from_package_name(module_name, attribute, location_name, executable_path)
 
 
-def _get_package_config_data(python_package_config: Union[str, Dict[str, str]], default_executable_path: str) -> Tuple[str, Optional[str], Optional[str], str]:
+def _get_package_config_data(
+    python_package_config: Union[str, Dict[str, str]], default_executable_path: str
+) -> Tuple[str, Optional[str], Optional[str], str]:
     return (
         (python_package_config, None, None, default_executable_path)
         if isinstance(python_package_config, str)
