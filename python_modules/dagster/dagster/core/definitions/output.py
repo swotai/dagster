@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Any, Callable, Dict, NamedTuple, Optional, Set, Type, TypeVar, Union
+from typing import Any, Callable, Dict, NamedTuple, Optional, Set, Type, TypeVar, Union, Sequence
 
 from dagster import check
 from dagster.core.definitions.events import AssetKey
@@ -61,6 +61,8 @@ class OutputDefinition:
         asset_key=None,
         asset_partitions=None,
         # make sure new parameters are updated in combine_with_inferred below
+        in_deps=None,
+        out_deps=None,
     ):
         self._name = (
             check_valid_name(check.opt_str_param(name, "name", DEFAULT_OUTPUT))
@@ -75,6 +77,8 @@ class OutputDefinition:
             io_manager_key, "io_manager_key", default="io_manager"
         )
         self._metadata = metadata
+        self._in_deps = in_deps
+        self._out_deps = out_deps
 
         if asset_key:
             experimental_arg_warning("asset_key", "OutputDefinition.__init__")
@@ -99,6 +103,14 @@ class OutputDefinition:
             self._asset_partitions_fn = lambda _: asset_partitions
         else:
             self._asset_partitions_fn = None
+
+    @property
+    def in_deps(self) -> Sequence[str]:
+        return self._in_deps
+
+    @property
+    def out_deps(self) -> Sequence[str]:
+        return self._out_deps
 
     @property
     def name(self):
@@ -212,6 +224,8 @@ class OutputDefinition:
             metadata=self._metadata,
             asset_key=self._asset_key,
             asset_partitions=self._asset_partitions_fn,
+            in_deps=self._in_deps,
+            out_deps=self._out_deps,
         )
 
 
@@ -305,6 +319,8 @@ class Out(
             ("metadata", Optional[Dict[str, Any]]),
             ("asset_key", Optional[Union[AssetKey, Callable[..., AssetKey]]]),
             ("asset_partitions", Optional[Union[Set[str], Callable[..., Set[str]]]]),
+            ("in_deps", Optional[Sequence[str]]),
+            ("out_deps", Optional[Sequence[str]]),
         ],
     )
 ):
@@ -348,6 +364,8 @@ class Out(
         asset_key=None,
         asset_partitions=None,
         # make sure new parameters are updated in combine_with_inferred below
+        in_deps=None,
+        out_deps=None,
     ):
         return super(Out, cls).__new__(
             cls,
@@ -358,6 +376,8 @@ class Out(
             metadata=metadata,
             asset_key=asset_key,
             asset_partitions=asset_partitions,
+            in_deps=in_deps,
+            out_deps=out_deps,
         )
 
     @staticmethod
@@ -370,6 +390,8 @@ class Out(
             metadata=output_def.metadata,
             asset_key=output_def._asset_key,  # pylint: disable=protected-access
             asset_partitions=output_def._asset_partitions_fn,  # pylint: disable=protected-access
+            in_deps=output_def.in_deps,
+            out_deps=output_def.out_deps,
         )
 
     def to_definition(self, annotation_type: type, name: Optional[str]) -> "OutputDefinition":
@@ -386,6 +408,8 @@ class Out(
             metadata=self.metadata,
             asset_key=self.asset_key,
             asset_partitions=self.asset_partitions,
+            in_deps=self.in_deps,
+            out_deps=self.out_deps,
         )
 
 
