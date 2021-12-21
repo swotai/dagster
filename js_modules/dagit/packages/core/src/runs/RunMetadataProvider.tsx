@@ -99,6 +99,7 @@ export const extractLogCaptureStepsFromLegacySteps = (stepKeys: string[]) => {
 };
 
 const fromTimestamp = (ts: number | null) => (ts ? Math.floor(ts * 1000) : undefined);
+
 function extractMetadataFromRun(run?: RunFragment): IRunMetadataDict {
   const metadata: IRunMetadataDict = {
     firstLogAt: 0,
@@ -114,13 +115,15 @@ function extractMetadataFromRun(run?: RunFragment): IRunMetadataDict {
   }
   if (run.stats.startTime) {
     metadata.startedPipelineAt = fromTimestamp(run.stats.startTime);
+    metadata.firstLogAt = metadata.startedPipelineAt || 0;
   }
   if (run.stats.endTime) {
     metadata.exitedAt = fromTimestamp(run.stats.endTime);
+    metadata.mostRecentLogAt = metadata.exitedAt || 0;
   }
 
   run.stepStats.forEach((stepStat) => {
-    metadata.steps[stepStat.stepKey] = {
+    const stepMetadata = {
       // state:
       // current state
       state: stepStatusToStepState(stepStat.status),
@@ -153,6 +156,15 @@ function extractMetadataFromRun(run?: RunFragment): IRunMetadataDict {
         key: `marker_${idx}`,
       })),
     };
+
+    metadata.steps[stepStat.stepKey] = stepMetadata;
+    const stepMostRecent = Math.max(
+      stepMetadata.start || 0,
+      stepMetadata.end || 0,
+      Math.max(...stepMetadata.attempts.map((attempt) => attempt.start || 0)),
+      Math.max(...stepMetadata.attempts.map((attempt) => attempt.end || 0)),
+    );
+    metadata.mostRecentLogAt = Math.max(stepMostRecent, metadata.mostRecentLogAt);
   });
 
   return metadata;
