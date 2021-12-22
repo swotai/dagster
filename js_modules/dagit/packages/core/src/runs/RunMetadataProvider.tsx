@@ -137,17 +137,25 @@ function extractMetadataFromRun(run?: RunFragment): IRunMetadataDict {
 
       // transition times organized into start+stop+exit state pairs.
       // This is the metadata used to render boxes on the realtime vi.z
-      attempts: stepStat.attempts.map(
-        (attempt, idx) =>
-          ({
-            start: fromTimestamp(attempt.startTime),
-            end: fromTimestamp(attempt.endTime),
-            exitState:
-              idx === stepStat.attempts.length - 1
-                ? stepStatusToStepState(stepStat.status)
-                : IStepState.RETRY_REQUESTED,
-          } as IStepAttempt),
-      ),
+      attempts: stepStat.attempts.length
+        ? stepStat.attempts.map(
+            (attempt, idx) =>
+              ({
+                start: fromTimestamp(attempt.startTime),
+                end: fromTimestamp(attempt.endTime),
+                exitState:
+                  idx === stepStat.attempts.length - 1
+                    ? stepStatusToStepState(stepStat.status)
+                    : IStepState.RETRY_REQUESTED,
+              } as IStepAttempt),
+          )
+        : [
+            {
+              start: fromTimestamp(stepStat.startTime),
+              end: fromTimestamp(stepStat.endTime),
+              exitState: stepStatusToStepState(stepStat.status),
+            } as IStepAttempt,
+          ],
 
       // accumulated metadata
       markers: stepStat.markers.map((marker, idx) => ({
