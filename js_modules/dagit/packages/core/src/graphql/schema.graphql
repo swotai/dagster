@@ -112,6 +112,7 @@ type Solid {
   definition: ISolidDefinition!
   inputs: [Input!]!
   outputs: [Output!]!
+  stepStats(limit: Int): [RunStepStats!]!
   isDynamicMapped: Boolean!
 }
 
@@ -198,6 +199,69 @@ type Output {
   solid: Solid!
   definition: OutputDefinition!
   dependedBy: [Input!]!
+}
+
+type RunStepStats implements PipelineRunStepStats {
+  runId: String!
+  stepKey: String!
+  status: StepEventStatus
+  startTime: Float
+  endTime: Float
+  materializations: [Materialization!]!
+  expectationResults: [ExpectationResult!]!
+  attempts: [RunMarker!]!
+  markers: [RunMarker!]!
+}
+
+interface PipelineRunStepStats {
+  runId: String!
+  stepKey: String!
+  status: StepEventStatus
+  startTime: Float
+  endTime: Float
+  materializations: [Materialization!]!
+  expectationResults: [ExpectationResult!]!
+}
+
+enum StepEventStatus {
+  SKIPPED
+  SUCCESS
+  FAILURE
+  IN_PROGRESS
+}
+
+type Materialization implements DisplayableEvent {
+  label: String!
+  description: String
+  metadataEntries: [EventMetadataEntry!]!
+  assetKey: AssetKey
+}
+
+interface DisplayableEvent {
+  label: String!
+  description: String
+  metadataEntries: [EventMetadataEntry!]!
+}
+
+interface EventMetadataEntry {
+  label: String!
+  description: String
+}
+
+type AssetKey {
+  path: [String!]!
+}
+
+type ExpectationResult implements DisplayableEvent {
+  label: String!
+  description: String
+  metadataEntries: [EventMetadataEntry!]!
+  success: Boolean!
+}
+
+type RunMarker {
+  startTime: Float
+  endTime: Float
 }
 
 type SolidHandle {
@@ -394,69 +458,6 @@ interface PipelineRunStatsSnapshot {
   expectations: Int!
   enqueuedTime: Float
   launchTime: Float
-  startTime: Float
-  endTime: Float
-}
-
-type RunStepStats implements PipelineRunStepStats {
-  runId: String!
-  stepKey: String!
-  status: StepEventStatus
-  startTime: Float
-  endTime: Float
-  materializations: [Materialization!]!
-  expectationResults: [ExpectationResult!]!
-  attempts: [RunMarker!]!
-  markers: [RunMarker!]!
-}
-
-interface PipelineRunStepStats {
-  runId: String!
-  stepKey: String!
-  status: StepEventStatus
-  startTime: Float
-  endTime: Float
-  materializations: [Materialization!]!
-  expectationResults: [ExpectationResult!]!
-}
-
-enum StepEventStatus {
-  SKIPPED
-  SUCCESS
-  FAILURE
-  IN_PROGRESS
-}
-
-type Materialization implements DisplayableEvent {
-  label: String!
-  description: String
-  metadataEntries: [EventMetadataEntry!]!
-  assetKey: AssetKey
-}
-
-interface DisplayableEvent {
-  label: String!
-  description: String
-  metadataEntries: [EventMetadataEntry!]!
-}
-
-interface EventMetadataEntry {
-  label: String!
-  description: String
-}
-
-type AssetKey {
-  path: [String!]!
-}
-
-type ExpectationResult implements DisplayableEvent {
-  label: String!
-  description: String
-  metadataEntries: [EventMetadataEntry!]!
-  success: Boolean!
-}
-
-type RunMarker {
   startTime: Float
   endTime: Float
 }

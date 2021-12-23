@@ -1,4 +1,6 @@
 from functools import lru_cache
+from dagster.core.storage.pipeline_run import PipelineRunsFilter
+from dagster_graphql.schema.logs.events import GrapheneRunStepStats
 
 import graphene
 from dagster import check
@@ -415,6 +417,8 @@ class GrapheneSolid(graphene.ObjectType):
     definition = graphene.NonNull(lambda: GrapheneISolidDefinition)
     inputs = non_null_list(GrapheneInput)
     outputs = non_null_list(GrapheneOutput)
+    stepStats = graphene.Field(non_null_list(GrapheneRunStepStats), limit=graphene.Int())
+
     is_dynamic_mapped = graphene.NonNull(graphene.Boolean)
 
     class Meta:
@@ -443,6 +447,17 @@ class GrapheneSolid(graphene.ObjectType):
 
     def resolve_definition(self, _graphene_info):
         return self.get_solid_definition()
+
+    def resolve_stepStats(self, _graphene_info, limit):
+        instance = _graphene_info.context.instance
+        runs_filter = PipelineRunsFilter(pipeline_name=self._represented_pipeline.name)
+        runs = instance.get_runs(runs_filter, limit=limit)
+        results = []
+        for run in runs:
+            stats = instance.get_run_step_stats(run.run_id, [self.name])
+            if len(stats):
+                results.append(GrapheneRunStepStats(stats[0]))
+        return results
 
     def resolve_inputs(self, _graphene_info):
         return [
