@@ -7,7 +7,6 @@ import time
 from contextlib import contextmanager
 
 import pendulum
-import pytest
 from dagster import (
     Any,
     Field,
@@ -31,8 +30,8 @@ from dagster.core.host_representation import (
     GrpcServerRepositoryLocation,
     GrpcServerRepositoryLocationOrigin,
     InProcessRepositoryLocationOrigin,
-    ManagedGrpcPythonEnvRepositoryLocationOrigin,
 )
+from dagster.core.host_representation.origin import IN_PROCESS_NAME
 from dagster.core.scheduler.instigation import (
     InstigatorState,
     InstigatorStatus,
@@ -54,6 +53,7 @@ from dagster.core.test_utils import (
     mock_system_timezone,
 )
 from dagster.core.types.loadable_target_origin import LoadableTargetOrigin
+from dagster.core.workspace.load_target import GrpcServerTarget, ModuleTarget, PythonFileTarget
 from dagster.daemon import get_default_daemon_logger
 from dagster.grpc.client import EphemeralDagsterGrpcClient
 from dagster.grpc.server import open_server_process
@@ -441,10 +441,10 @@ def logger():
 
 
 @contextmanager
-def instance_with_schedules(external_repo_context, overrides=None):
+def instance_with_schedules(overrides=None):
     with schedule_instance(overrides) as instance:
-        with create_test_daemon_workspace() as workspace:
-            with external_repo_context() as external_repo:
+        with create_test_daemon_workspace(workspace_load_target()) as workspace:
+            with default_repo() as external_repo:
                 yield (instance, workspace, external_repo)
 
 
@@ -458,11 +458,19 @@ def _loadable_target_origin():
 
 @contextmanager
 def default_repo():
-    with ManagedGrpcPythonEnvRepositoryLocationOrigin(
-        loadable_target_origin=_loadable_target_origin(),
-        location_name="test_location",
-    ).create_test_location() as location:
+    load_target = workspace_load_target()
+    origin = load_target.create_origins()[0]
+    with origin.create_single_location() as location:
         yield location.get_repository("the_repo")
+
+
+def workspace_load_target():
+    return PythonFileTarget(
+        python_file=__file__,
+        attribute=None,
+        working_directory=os.getcwd(),
+        location_name="test_location",
+    )
 
 
 def repos():
@@ -531,13 +539,12 @@ def wait_for_all_runs_to_start(instance, timeout=10):
             break
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_simple_schedule(external_repo_context, capfd):
+def test_simple_schedule(capfd):
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=27, hour=23, minute=59, second=59, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -683,13 +690,12 @@ def test_simple_schedule(external_repo_context, capfd):
             assert len(ticks) == 3
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_old_tick_schedule(external_repo_context):
+def test_old_tick_schedule():
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=27, hour=23, minute=59, second=59, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -730,9 +736,8 @@ def test_old_tick_schedule(external_repo_context):
             assert len(ticks) == 2
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_no_started_schedules(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def test_no_started_schedules(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -751,10 +756,9 @@ def test_no_started_schedules(external_repo_context, capfd):
         assert "Not checking for any runs since no schedules have been started." in captured.out
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_schedule_without_timezone(external_repo_context, capfd):
+def test_schedule_without_timezone(capfd):
     with mock_system_timezone("US/Eastern"):
-        with instance_with_schedules(external_repo_context) as (
+        with instance_with_schedules() as (
             instance,
             workspace,
             external_repo,
@@ -810,9 +814,8 @@ def test_schedule_without_timezone(external_repo_context, capfd):
                 assert len(ticks) == 1
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_bad_env_fn_no_retries(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def test_bad_env_fn_no_retries(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -884,9 +887,8 @@ def test_bad_env_fn_no_retries(external_repo_context, capfd):
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_bad_env_fn_with_retries(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def test_bad_env_fn_with_retries(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -990,7 +992,7 @@ def test_bad_env_fn_with_retries(external_repo_context, capfd):
 
 
 def test_passes_on_retry():
-    with instance_with_schedules(default_repo) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1064,9 +1066,8 @@ def test_passes_on_retry():
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_bad_should_execute(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def test_bad_should_execute(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1110,9 +1111,8 @@ def test_bad_should_execute(external_repo_context, capfd):
             assert "Exception: bananas" in captured.out
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_skip(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def test_skip(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1148,9 +1148,8 @@ def test_skip(external_repo_context, capfd):
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_wrong_config_schedule(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def test_wrong_config_schedule(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1187,9 +1186,8 @@ def test_wrong_config_schedule(external_repo_context, capfd):
             assert 'Missing required config entry "solids" at the root.' in captured.out
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_schedule_run_default_config(external_repo_context):
-    with instance_with_schedules(external_repo_context) as (
+def test_schedule_run_default_config():
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1244,9 +1242,12 @@ def _get_unloadable_schedule_origin():
     ).get_job_origin("doesnt_exist")
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_bad_schedules_mixed_with_good_schedule(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def _get_unloadable_workspace_load_target():
+    return ModuleTarget(module_name="doesnt_exist", attribute=None, location_name=IN_PROCESS_NAME)
+
+
+def test_bad_schedules_mixed_with_good_schedule(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1314,7 +1315,7 @@ def test_bad_schedules_mixed_with_good_schedule(external_repo_context, capfd):
 
             captured = capfd.readouterr()
             assert "Scheduler caught an error for schedule doesnt_exist" in captured.out
-            assert "doesnt_exist not found at module scope" in captured.out
+            assert "Location <<in_process>> does not exist in workspace" in captured.out
 
         initial_datetime = initial_datetime.add(days=1)
         with pendulum.test(initial_datetime):
@@ -1369,12 +1370,11 @@ def test_bad_schedules_mixed_with_good_schedule(external_repo_context, capfd):
 
             captured = capfd.readouterr()
             assert "Scheduler caught an error for schedule doesnt_exist" in captured.out
-            assert "doesnt_exist not found at module scope" in captured.out
+            assert "Location <<in_process>> does not exist in workspace" in captured.out
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_run_scheduled_on_time_boundary(external_repo_context):
-    with instance_with_schedules(external_repo_context) as (
+def test_run_scheduled_on_time_boundary():
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1402,13 +1402,12 @@ def test_run_scheduled_on_time_boundary(external_repo_context):
             assert ticks[0].status == TickStatus.SUCCESS
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_bad_load_repository(external_repo_context, capfd):
+def test_bad_load_repository(capfd):
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=27, hour=23, minute=59, second=59, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1452,13 +1451,12 @@ def test_bad_load_repository(external_repo_context, capfd):
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_bad_load_schedule(external_repo_context, capfd):
+def test_bad_load_schedule(capfd):
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=27, hour=23, minute=59, second=59, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1499,7 +1497,9 @@ def test_bad_load_schedule(external_repo_context, capfd):
 
 
 def test_bad_load_repository_location(capfd):
-    with schedule_instance() as instance, create_test_daemon_workspace() as workspace:
+    with schedule_instance() as instance, create_test_daemon_workspace(
+        _get_unloadable_workspace_load_target()
+    ) as workspace:
         fake_origin = _get_unloadable_schedule_origin()
         initial_datetime = create_pendulum_time(
             year=2019,
@@ -1530,7 +1530,7 @@ def test_bad_load_repository_location(capfd):
 
             captured = capfd.readouterr()
             assert "Scheduler caught an error for schedule doesnt_exist" in captured.out
-            assert "doesnt_exist not found at module scope" in captured.out
+            assert "No module named 'doesnt_exist'" in captured.out
 
         initial_datetime = initial_datetime.add(days=1)
         with pendulum.test(initial_datetime):
@@ -1540,9 +1540,8 @@ def test_bad_load_repository_location(capfd):
             assert len(ticks) == 0
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_multiple_schedules_on_different_time_ranges(external_repo_context, capfd):
-    with instance_with_schedules(external_repo_context) as (
+def test_multiple_schedules_on_different_time_ranges(capfd):
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1615,10 +1614,8 @@ def test_multiple_schedules_on_different_time_ranges(external_repo_context, capf
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_launch_failure(external_repo_context, capfd):
+def test_launch_failure(capfd):
     with instance_with_schedules(
-        external_repo_context,
         overrides={
             "run_launcher": {
                 "module": "dagster.core.test_utils",
@@ -1676,7 +1673,7 @@ def test_launch_failure(external_repo_context, capfd):
 
 def test_partitionless_schedule(capfd):
     initial_datetime = create_pendulum_time(year=2019, month=2, day=27, tz="US/Central")
-    with instance_with_schedules(default_repo) as (instance, workspace, external_repo):
+    with instance_with_schedules() as (instance, workspace, external_repo):
         with pendulum.test(initial_datetime):
             external_schedule = external_repo.get_external_schedule("partitionless_schedule")
             schedule_origin = external_schedule.get_external_origin()
@@ -1723,7 +1720,7 @@ def test_max_catchup_runs(capfd):
         create_pendulum_time(year=2019, month=2, day=27, hour=23, minute=59, second=59, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(default_repo) as (instance, workspace, external_repo):
+    with instance_with_schedules() as (instance, workspace, external_repo):
         with pendulum.test(initial_datetime):
             external_schedule = external_repo.get_external_schedule("simple_schedule")
             schedule_origin = external_schedule.get_external_origin()
@@ -1791,8 +1788,7 @@ def test_max_catchup_runs(capfd):
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_multi_runs(external_repo_context, capfd):
+def test_multi_runs(capfd):
     freeze_datetime = to_timezone(
         create_pendulum_time(
             year=2019,
@@ -1805,7 +1801,7 @@ def test_multi_runs(external_repo_context, capfd):
         ),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1890,12 +1886,11 @@ def test_multi_runs(external_repo_context, capfd):
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_multi_runs_missing_run_key(external_repo_context, capfd):
+def test_multi_runs_missing_run_key(capfd):
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=27, tz="UTC"), "US/Central"
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1936,13 +1931,12 @@ def test_multi_runs_missing_run_key(external_repo_context, capfd):
             )
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_large_schedule(external_repo_context):
+def test_large_schedule():
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=27, hour=23, minute=59, second=59, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -1969,13 +1963,12 @@ def test_large_schedule(external_repo_context):
             assert len(ticks) == 1
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_manual_partition_with_solid_selection(external_repo_context):
+def test_manual_partition_with_solid_selection():
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=27, hour=23, minute=59, second=59, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -2041,13 +2034,12 @@ def _grpc_server_external_repo(port):
             wait_for_process(server_process, timeout=30)
 
 
-@pytest.mark.parametrize("external_repo_context", repos())
-def test_skip_reason_schedule(external_repo_context, capfd):
+def test_skip_reason_schedule(capfd):
     freeze_datetime = to_timezone(
         create_pendulum_time(year=2019, month=2, day=28, tz="UTC"),
         "US/Central",
     )
-    with instance_with_schedules(external_repo_context) as (
+    with instance_with_schedules() as (
         instance,
         workspace,
         external_repo,
@@ -2100,7 +2092,11 @@ def test_grpc_server_down():
     initial_datetime = create_pendulum_time(year=2019, month=2, day=27, hour=0, minute=0, second=0)
 
     with schedule_instance() as instance:
-        with create_test_daemon_workspace() as workspace:
+        with create_test_daemon_workspace(
+            GrpcServerTarget(
+                host="localhost", port=port, socket=None, location_name="test_location"
+            )
+        ) as workspace:
             with pendulum.test(initial_datetime):
                 with _grpc_server_external_repo(port) as external_repo:
                     external_schedule = external_repo.get_external_schedule("simple_schedule")
