@@ -1,3 +1,4 @@
+import json
 import time
 import uuid
 
@@ -30,6 +31,30 @@ class TestExecutePipeline(ExecutingGraphQLContextTestMatrix):
                 "executionParams": {
                     "selector": selector,
                     "runConfigData": csv_hello_world_solids_config(),
+                    "mode": "default",
+                }
+            },
+        )
+
+        assert not result.errors
+        assert result.data
+
+        # just test existence
+        assert result.data["launchPipelineExecution"]["__typename"] == "LaunchRunSuccess"
+        assert uuid.UUID(result.data["launchPipelineExecution"]["run"]["runId"])
+        assert (
+            result.data["launchPipelineExecution"]["run"]["pipeline"]["name"] == "csv_hello_world"
+        )
+
+    def test_start_pipeline_execution_serialized_config(self, graphql_context):
+        selector = infer_pipeline_selector(graphql_context, "csv_hello_world")
+        result = execute_dagster_graphql(
+            graphql_context,
+            LAUNCH_PIPELINE_EXECUTION_MUTATION,
+            variables={
+                "executionParams": {
+                    "selector": selector,
+                    "runConfigData": json.dumps(csv_hello_world_solids_config()),
                     "mode": "default",
                 }
             },
