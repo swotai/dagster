@@ -116,8 +116,8 @@ def build_job_partitions_from_assets(
             if assets_def.partitions_def
         }
 
-    def tags_for_partition_fn(partition_key: str) -> Mapping[str, Any]:
-        asset_partitions_tag_value: Dict[str, Dict[str, Dict[str, Dict[str, Any]]]] = {}
+    def run_config_for_partition_fn(partition_key: str) -> Mapping[str, Any]:
+        ops_config: Dict[str, Any] = {}
         asset_partitions_by_asset_key = asset_partitions_for_job_partition(partition_key)
 
         for assets_def in assets:
@@ -145,12 +145,14 @@ def build_job_partitions_from_assets(
                         "end": upstream_partition_key_range.end,
                     }
 
-            asset_partitions_tag_value[assets_def.op.name] = {
-                "inputs": inputs_dict,
-                "outputs": outputs_dict,
+            ops_config[assets_def.op.name] = {
+                "config": {
+                    "input_asset_partitions": inputs_dict,
+                    "output_asset_partitions": outputs_dict,
+                }
             }
 
-        return {"asset_partitions": asset_partitions_tag_value}
+        return {"ops": ops_config}
 
     partitions_defs = [
         assets_def.partitions_def for assets_def in assets if assets_def.partitions_def
@@ -158,8 +160,7 @@ def build_job_partitions_from_assets(
     if partitions_defs:
         return PartitionedConfig(
             partitions_def=partitions_defs[0],
-            run_config_for_partition_fn=lambda _: {},
-            tags_for_partition_fn=tags_for_partition_fn,
+            run_config_for_partition_fn=lambda p: run_config_for_partition_fn(p.name),
         )
     else:
         return None

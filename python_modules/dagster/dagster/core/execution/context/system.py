@@ -550,26 +550,34 @@ class StepExecutionContext(PlanExecutionContext, IStepContext):
     def previous_attempt_count(self) -> int:
         return self._previous_attempt_count
 
-    def has_asset_partitions_for_input(self, input_name: str) -> bool:
-        tags = self._plan_data.pipeline_run.tags
+    @property
+    def op_config(self) -> Any:
+        solid_config = self.resolved_run_config.solids.get(str(self.solid_handle))
+        return solid_config.config if solid_config else None
 
-        if "asset_partitions" in tags:
-            asset_partitions = json.loads(tags["asset_partitions"])
-            step_partitions = asset_partitions.get(self.step.key)
-            return step_partitions is not None and input_name in step_partitions["inputs"]
-        else:
+    def has_asset_partitions_for_input(self, input_name: str) -> bool:
+        op_config = self.op_config
+        if op_config is not None:
+            all_input_asset_partitions = op_config.get("input_asset_partitions")
+            if all_input_asset_partitions is not None:
+                this_input_asset_partitions = all_input_asset_partitions.get(input_name)
+                if this_input_asset_partitions is not None:
+                    return True
+
             return False
 
     def asset_partition_key_range_for_input(self, input_name: str) -> PartitionKeyRange:
-        tags = self._plan_data.pipeline_run.tags
+        op_config = self.op_config
+        if op_config is not None:
+            all_input_asset_partitions = op_config.get("input_asset_partitions")
+            if all_input_asset_partitions is not None:
+                this_input_asset_partitions = all_input_asset_partitions.get(input_name)
+                if this_input_asset_partitions is not None:
+                    return PartitionKeyRange(
+                        this_input_asset_partitions["start"], this_input_asset_partitions["end"]
+                    )
 
-        if "asset_partitions" in tags:
-            step_input_partitions = json.loads(tags["asset_partitions"])[self.step.key]["inputs"][
-                input_name
-            ]
-            return PartitionKeyRange(step_input_partitions["start"], step_input_partitions["end"])
-        else:
-            check.failed("The run has no 'asset_partitions' tag")
+        check.failed("The input has no asset partitions")
 
     def asset_partition_key_for_input(self, input_name: str) -> str:
         start, end = self.asset_partition_key_range_for_input(input_name)
@@ -582,25 +590,28 @@ class StepExecutionContext(PlanExecutionContext, IStepContext):
             )
 
     def has_asset_partitions_for_output(self, output_name: str) -> bool:
-        tags = self._plan_data.pipeline_run.tags
+        op_config = self.op_config
+        if op_config is not None:
+            all_output_asset_partitions = op_config.get("output_asset_partitions")
+            if all_output_asset_partitions is not None:
+                this_output_asset_partitions = all_output_asset_partitions.get(output_name)
+                if this_output_asset_partitions is not None:
+                    return True
 
-        if "asset_partitions" in tags:
-            asset_partitions = json.loads(tags["asset_partitions"])
-            step_partitions = asset_partitions.get(self.step.key)
-            return step_partitions is not None and output_name in step_partitions["outputs"]
-        else:
             return False
 
     def asset_partition_key_range_for_output(self, output_name: str) -> PartitionKeyRange:
-        tags = self._plan_data.pipeline_run.tags
+        op_config = self.op_config
+        if op_config is not None:
+            all_output_asset_partitions = op_config.get("output_asset_partitions")
+            if all_output_asset_partitions is not None:
+                this_output_asset_partitions = all_output_asset_partitions.get(output_name)
+                if this_output_asset_partitions is not None:
+                    return PartitionKeyRange(
+                        this_output_asset_partitions["start"], this_output_asset_partitions["end"]
+                    )
 
-        if "asset_partitions" in tags:
-            step_output_partitions = json.loads(tags["asset_partitions"])[self.step.key]["outputs"][
-                output_name
-            ]
-            return PartitionKeyRange(step_output_partitions["start"], step_output_partitions["end"])
-        else:
-            check.failed("The run has no 'asset_partitions' tag")
+        check.failed("The output has no asset partitions")
 
     def asset_partition_key_for_output(self, output_name: str) -> str:
         start, end = self.asset_partition_key_range_for_output(output_name)
