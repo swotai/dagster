@@ -22,12 +22,15 @@ export const InstanceWarningIcon = React.memo(() => {
 
     // Find any schedules or sensors in the repo list.
     for (const repo of options) {
-      const {schedules, sensors} = repo.repository;
-      if (sensors.length) {
-        anySensors = true;
-      }
-      if (schedules.length) {
-        anySchedules = true;
+      const {pipelines} = repo.repository;
+      for (const job of pipelines) {
+        const {sensors, schedules} = job;
+        if (sensors.length) {
+          anySensors = true;
+        }
+        if (schedules.length) {
+          anySchedules = true;
+        }
       }
       if (anySensors && anySchedules) {
         break;

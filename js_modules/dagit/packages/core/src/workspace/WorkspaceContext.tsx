@@ -14,16 +14,16 @@ import {
   RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries,
   RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation,
   RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories,
-  RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_sensors,
-  RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_schedules,
+  RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_pipelines_sensors,
+  RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_pipelines_schedules,
 } from './types/RootWorkspaceQuery';
 
 type Repository = RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories;
 type RepositoryLocation = RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation;
 type RepositoryError = RootWorkspaceQuery_workspaceOrError_PythonError;
 
-export type WorkspaceRepositorySensor = RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_sensors;
-export type WorkspaceRepositorySchedule = RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_schedules;
+export type WorkspaceJobSensor = RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_pipelines_sensors;
+export type WorkspaceJobSchedule = RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries_locationOrLoadError_RepositoryLocation_repositories_pipelines_schedules;
 export type WorkspaceRepositoryLocationNode = RootWorkspaceQuery_workspaceOrError_Workspace_locationEntries;
 
 export interface DagsterRepoOption {
@@ -77,27 +77,26 @@ const ROOT_WORKSPACE_QUERY = gql`
                     id
                     name
                   }
-                }
-                schedules {
-                  id
-                  mode
-                  name
-                  pipelineName
-                  scheduleState {
+                  schedules {
                     id
-                    status
-                  }
-                }
-                sensors {
-                  id
-                  name
-                  targets {
                     mode
-                    pipelineName
+                    name
+                    scheduleState {
+                      id
+                      status
+                    }
                   }
-                  sensorState {
+                  sensors {
                     id
-                    status
+                    name
+                    targets {
+                      mode
+                      pipelineName
+                    }
+                    sensorState {
+                      id
+                      status
+                    }
                   }
                 }
                 partitionSets {
